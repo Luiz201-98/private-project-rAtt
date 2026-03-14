@@ -13729,7 +13729,7 @@ static int8 skill_castend_id_check(struct block_list *src, struct block_list *ta
     // Adicione esta verificação após as linhas existentes  
     if (target && skill_get_type(skill_id) == BF_MAGIC && skill_id != SA_LANDPROTECTOR) {  
         if (map_getcell(target->m, target->x, target->y, CELL_CHKLANDPROTECTOR)) {  
-            return USESKILL_FAIL_TOTARGET; // Falha por causa do alvo  
+            return USESKILL_FAIL;; // Falha por causa do alvo  
         }  
     } 
 
@@ -14371,6 +14371,14 @@ TIMER_FUNC(skill_castend_pos){
 		if (md != nullptr) {
 			if (md->skill_idx >= 0 && md->db->skill[md->skill_idx]->emotion >= ET_SURPRISE && md->db->skill[md->skill_idx]->emotion < ET_MAX)
 				clif_emotion(*src, static_cast<emotion_type>(md->db->skill[md->skill_idx]->emotion));
+		}  
+		if (skill_get_type(ud->skill_id) == BF_MAGIC && ud->skill_id != SA_LANDPROTECTOR) {  
+			if (map_getcell(src->m, ud->skillx, ud->skilly, CELL_CHKLANDPROTECTOR)) {  
+				if (sd) {  
+					clif_skill_fail(*sd, ud->skill_id, USESKILL_FAIL);  
+				}  
+				break; // Falha o lançamento  
+			}  
 		}
 
 		if (!skill_pos_maxcount_check(src, ud->skillx, ud->skilly, ud->skill_id, ud->skill_lv, src->type, true))
