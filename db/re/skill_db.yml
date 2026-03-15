@@ -4793,6 +4793,7 @@ Body:
       IgnoreKagehumi: true
       IgnoreWugBite: true
       Toggleable: true
+      AllowWhenHidden: true
     Hit: Single
     HitCount: 1
     Duration1:
@@ -8131,7 +8132,7 @@ Body:
       NoTargetSelf: true
       PartyOnly: true
       GuildOnly: true
-      TargetHidden: true
+      TargetHidden: false
     Range: 9
     Hit: Single
     HitCount: 1
@@ -26433,19 +26434,20 @@ Body:
     DamageFlags:
       NoDamage: true
       Splash: true
+    Range: 7
     Hit: Single
     HitCount: 1
     SplashArea:
       - Level: 1
-        Area: 1
+        Area: 3
       - Level: 2
-        Area: 1
+        Area: 3
       - Level: 3
-        Area: 1
+        Area: 3
       - Level: 4
-        Area: 2
+        Area: 5
       - Level: 5
-        Area: 2
+        Area: 5
     CastTime: 1000
     AfterCastActDelay: 300
     Duration1: # !TODO: What's the updated duration?
@@ -29396,7 +29398,7 @@ Body:
     Type: Weapon
     TargetType: Attack
     Flags:
-      TargetHidden: true
+      TargetHidden: false
     Range: -9
     Hit: Single
     HitCount: 1
