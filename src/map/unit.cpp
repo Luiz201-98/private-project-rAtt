@@ -35,6 +35,7 @@
 #include "path.hpp"
 #include "pc.hpp"
 #include "pet.hpp"
+#include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
 
@@ -763,7 +764,8 @@ static TIMER_FUNC(unit_walktoxy_timer)
 		if (bl->type != BL_NPC	// walking npc ignores cell stack limit
 			&& !ud->state.ignore_cell_stack_limit
 			&& battle_config.official_cell_stack_limit > 0
-			&& map_count_oncell(bl->m, x, y, BL_CHAR|BL_NPC, 1) > battle_config.official_cell_stack_limit) {
+			&& map_count_oncell(bl->m, x, y, BL_CHAR|BL_NPC, 1) > battle_config.official_cell_stack_limit
+			&& !skill_trap_owner_can_share_cell(bl, x, y)) {
 
 			//Walked on occupied cell, call unit_walktoxy again
 			if(unit_walktoxy(bl, x, y, 8)) {

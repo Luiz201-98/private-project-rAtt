@@ -4750,6 +4750,8 @@ Body:
     TargetType: Trap
     DamageFlags:
       NoDamage: true
+    Flags:
+      TargetTrap: true
     Range:
       - Level: 1
         Size: 4
@@ -27620,6 +27622,8 @@ Body:
     Hit: Single
     HitCount: 1
     Element: Fire
+    Flags:
+      IgnoreLandProtector: true
     CastTime:
       - Level: 1
         Time: 2200
@@ -33022,6 +33026,8 @@ Body:
     TargetType: Self
     DamageFlags:
       NoDamage: true
+    Flags:
+      IsTrap: true
     Hit: Single
     HitCount: 1
     Knockback:

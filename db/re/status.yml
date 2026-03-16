@@ -4022,7 +4022,6 @@ Body:
     Flags:
       NoDispell: true
       NoBanishingBuster: true
-      NoClearance: true
     EndOnStart:
       Crystalize: true
       Freezing: true

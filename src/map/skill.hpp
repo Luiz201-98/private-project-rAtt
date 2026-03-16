@@ -607,6 +607,7 @@ void skill_consume_requirement(map_session_data *sd, uint16 skill_id, uint16 ski
 struct s_skill_condition skill_get_requirement(map_session_data *sd, uint16 skill_id, uint16 skill_lv);
 bool skill_disable_check(status_change &sc, uint16 skill_id);
 bool skill_pos_maxcount_check(struct block_list *src, int16 x, int16 y, uint16 skill_id, uint16 skill_lv, enum bl_type type, bool display_failure);
+bool skill_trap_owner_can_share_cell(struct block_list *walker, int16 x, int16 y);
 
 int32 skill_check_pc_partner(map_session_data *sd, uint16 skill_id, uint16 *skill_lv, int32 range, int32 cast_flag);
 int32 skill_unit_move(struct block_list *bl,t_tick tick,int32 flag);

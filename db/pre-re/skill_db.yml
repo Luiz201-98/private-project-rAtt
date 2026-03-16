@@ -4669,6 +4669,8 @@ Body:
     TargetType: Trap
     DamageFlags:
       NoDamage: true
+    Flags:
+      TargetTrap: true
     Range:
       - Level: 1
         Size: 4
@@ -30047,6 +30049,8 @@ Body:
     TargetType: Self
     DamageFlags:
       NoDamage: true
+    Flags:
+      IsTrap: true
     Hit: Single
     HitCount: 1
     Knockback:

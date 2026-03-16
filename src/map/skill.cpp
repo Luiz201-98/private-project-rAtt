@@ -3596,7 +3596,13 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 	nullpo_ret(bl);		//Target to be attacked.
 
 	if (status_bl_has_mode(bl,MD_SKILLIMMUNE) || (status_get_class(bl) == MOBID_EMPERIUM && !skill_get_inf2(skill_id, INF2_TARGETEMPERIUM)))
-		return 0;
+		return 0;  
+	
+    if (skill_id == SO_EARTHGRAVE && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))  
+        return 0;   
+	
+    if (skill_id == SO_DIAMONDDUST && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))  
+        return 0; 
 
 	if (src != dsrc) {
 		//When caster is not the src of attack, this is a ground skill, and as such, do the relevant target checking. [Skotlex]
@@ -4220,7 +4226,9 @@ int32 skill_area_sub(struct block_list *bl, va_list ap)
 static int32 skill_check_unit_range_sub(struct block_list *bl, va_list ap)
 {
 	struct skill_unit *unit;
+	struct block_list *caster;
 	uint16 skill_id,g_skill_id;
+	int32 pos_x, pos_y;
 
 	unit = (struct skill_unit *)bl;
 
@@ -4231,6 +4239,9 @@ static int32 skill_check_unit_range_sub(struct block_list *bl, va_list ap)
 		return 0;
 
 	skill_id = va_arg(ap,int32);
+	pos_x = va_arg(ap,int32);
+	pos_y = va_arg(ap,int32);
+	caster = va_arg(ap,struct block_list *);
 	g_skill_id = unit->group->skill_id;
 
 	switch (skill_id) {
@@ -4279,6 +4290,10 @@ static int32 skill_check_unit_range_sub(struct block_list *bl, va_list ap)
 			//Non stackable on themselves and traps (including venom dust which does not has the trap inf2 set)
 			if (skill_id != g_skill_id && !skill_get_inf2(g_skill_id, INF2_ISTRAP) && g_skill_id != AS_VENOMDUST && g_skill_id != MH_POISON_MIST)
 				return 0;
+			// Allow renewing/placing Escape/Ankle Snare when our trap with victim is in the area (same cell or adjacent - caster can be next to trap)
+			if (caster && (skill_id == SC_ESCAPE || skill_id == HT_ANKLESNARE) && g_skill_id == skill_id
+				&& unit->group->src_id == caster->id && unit->group->val2 != 0)
+				return 0;
 			break;
 		default: //Avoid stacking with same kind of trap. [Skotlex]
 			if (g_skill_id != skill_id)
@@ -4300,7 +4315,78 @@ static int32 skill_check_unit_range (struct block_list *bl, int32 x, int32 y, ui
 	}
 
 	range += layout_type;
-	return map_foreachinallarea(skill_check_unit_range_sub,bl->m,x-range,y-range,x+range,y+range,BL_SKILL,skill_id);
+	return map_foreachinallarea(skill_check_unit_range_sub,bl->m,x-range,y-range,x+range,y+range,BL_SKILL,skill_id,x,y,bl);
+}
+
+static int32 skill_trap_owner_can_share_cell_sub(struct block_list *bl, va_list ap)
+{
+	struct block_list *walker = va_arg(ap, struct block_list *);
+	struct skill_unit *su = BL_CAST(BL_SKILL, bl);
+
+	if (!su || !su->group || su->group->unit_id != UNT_ANKLESNARE || su->group->src_id != walker->id || su->group->val2 == 0)
+		return 0;
+	return 1; // This cell has our Escape/Ankle Snare trap with a victim; owner can step on it
+}
+
+bool skill_trap_owner_can_share_cell(struct block_list *walker, int16 x, int16 y)
+{
+	if (!walker || walker->m < 0)
+		return false;
+	return map_foreachincell(skill_trap_owner_can_share_cell_sub, walker->m, x, y, BL_SKILL, walker) > 0;
+}
+
+/**
+ * When caster places a new SC_ESCAPE trap and already has a trap with a victim,
+ * move the victim to the new trap and remove the old trap.
+ */
+static void skill_escape_transfer_victim_to_new_trap(struct block_list *src, std::shared_ptr<s_skill_unit_group> new_group)
+{
+	unit_data *ud = unit_bl2ud(src);
+	if (!ud || !new_group || !new_group->unit || new_group->skill_id != SC_ESCAPE)
+		return;
+
+	std::shared_ptr<s_skill_unit_group> old_group;
+	for (const auto &sg : ud->skillunits) {
+		if (sg != new_group && sg->skill_id == SC_ESCAPE && sg->val2 != 0) {
+			old_group = sg;
+			break;
+		}
+	}
+	if (!old_group)
+		return;
+
+	struct block_list *victim = map_id2bl(old_group->val2);
+	if (!victim || victim->prev == nullptr || status_isdead(*victim))
+		return;
+
+	int16 new_x = new_group->unit->x;
+	int16 new_y = new_group->unit->y;
+	enum sc_type type = skill_get_sc(SC_ESCAPE);
+
+	status_change_end(victim, type);
+	unit_movepos(victim, new_x, new_y, 0, 0);
+	clif_fixpos(*victim);
+
+	skill_delunit(old_group->unit);
+
+	t_tick sec = skill_get_time2(SC_ESCAPE, new_group->skill_lv);
+	t_tick mintime = 30 * (status_get_lv(src) + 100);
+#ifndef RENEWAL
+	if (status_bl_has_mode(victim, MD_STATUSIMMUNE))
+		sec /= 5;
+#endif
+	sec = std::max((sec * status_get_agi(victim)) / -200 + sec, mintime);
+
+	if (status_change_start(src, victim, type, 10000, new_group->skill_lv, new_group->group_id, 0, 0, sec, SCSTART_NORATEDEF)) {
+		new_group->val2 = victim->id;
+		t_tick tick = gettick();
+		new_group->limit = DIFF_TICK(tick, new_group->tick) + sec;
+		new_group->unit->limit = new_group->limit;
+		new_group->interval = -1;
+		new_group->unit->range = 0;
+		clif_skillunit_update(*new_group->unit);
+		clif_changetraplook(new_group->unit, UNT_ANKLESNARE);
+	}
 }
 
 static int32 skill_check_unit_range2_sub (struct block_list *bl, va_list ap)
@@ -4372,6 +4458,16 @@ static int32 skill_check_unit_range2 (struct block_list *bl, int32 x, int32 y, u
 		range += skill_npc_range;
 
 	if (!isNearNPC) { //Doesn't check the NPC range
+		// Escape/Ankle Snare: allow using skill from adjacent when our trap with victim is anywhere in the skill area (renew/transfer from any cell in range)
+		if (skill_id == SC_ESCAPE || skill_id == HT_ANKLESNARE) {
+			for (int16 dx = (int16)-range; dx <= range; dx++) {
+				for (int16 dy = (int16)-range; dy <= range; dy++) {
+					struct skill_unit *su = map_find_skill_unit_oncell(bl, (int16)(x + dx), (int16)(y + dy), skill_id, nullptr, 0);
+					if (su && su->group && su->group->src_id == bl->id && su->group->val2 != 0)
+						return 0; // Our trap with victim in area - allow caster to be in area (e.g. adjacent)
+				}
+			}
+		}
 		//If the caster is a monster/NPC, only check for players. Otherwise just check characters
 		if (bl->type&battle_config.skill_nofootset)
 			type = BL_CHAR;
@@ -4796,7 +4892,7 @@ static TIMER_FUNC(skill_timerskill){
 				case GN_CRAZYWEED_ATK:
 					{
 						int32 dummy = 1, i = skill_get_unit_range(skl->skill_id,skl->skill_lv);
-						map_foreachinarea(skill_cell_overlap, src->m, skl->x-i, skl->y-i, skl->x+i, skl->y+i, BL_SKILL, skl->skill_id, &dummy, src);
+						map_foreachinarea(skill_cell_overlap, src->m, skl->x-i, skl->y-i, skl->x+i, skl->y+i, BL_SKILL, skl->skill_id, &dummy, src, skl->skill_lv);
 					}
 					[[fallthrough]];
 				case WL_EARTHSTRAIN:
@@ -4806,7 +4902,7 @@ static TIMER_FUNC(skill_timerskill){
 						int32 dummy = 1, i = skill_get_splash(skl->skill_id,skl->skill_lv);
 
 						if (rnd() % 100 < (15 + 5 * skl->skill_lv))
-							map_foreachinallarea(skill_cell_overlap,src->m,skl->x-i,skl->y-i,skl->x+i,skl->y+i,BL_SKILL,skl->skill_id,&dummy,src);
+							map_foreachinallarea(skill_cell_overlap,src->m,skl->x-i,skl->y-i,skl->x+i,skl->y+i,BL_SKILL,skl->skill_id,&dummy,src,skl->skill_lv);
 						skill_unitsetting(src,skl->skill_id,skl->skill_lv,skl->x,skl->y,0);
 					}
 					break;
@@ -5882,6 +5978,24 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 				break; // Under Hovering characters are immune to select trap and ground target skills.
 
 			if (skill_id == AB_ADORAMUS && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector
+
+			if (skill_id == SO_PSYCHIC_WAVE && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector
+
+			if (skill_id == SO_DIAMONDDUST && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector
+
+/* 			if (skill_id == SO_EARTHGRAVE && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector */
+
+			if (skill_id == SO_CLOUD_KILL && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector
+
+			if (skill_id == LG_OVERBRAND && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector
+
+			if (skill_id == SC_FEINTBOMB && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
 				break; // No damage should happen if the target is on Land Protector
 
 			// Servant Weapon - Demol only hits if the target is marked with a sign by the attacking caster.
@@ -11363,7 +11477,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 			clif_skill_damage( *src, *bl,tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
 			i = skill_get_splash(skill_id,skill_lv);
-			map_foreachinallarea(skill_cell_overlap, src->m, src->x-i, src->y-i, src->x+i, src->y+i, BL_SKILL, LG_EARTHDRIVE, &dummy, src);
+			map_foreachinallarea(skill_cell_overlap, src->m, src->x-i, src->y-i, src->x+i, src->y+i, BL_SKILL, LG_EARTHDRIVE, &dummy, src, skill_lv);
 			map_foreachinrange(skill_area_sub, bl,i,BL_CHAR,src,skill_id,skill_lv,tick,flag|BCT_ENEMY|1,skill_castend_damage_id);
 			clif_skill_nodamage(src, *src, skill_id, skill_lv);
 		}
@@ -12002,7 +12116,23 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			rate = status_get_lv(src) / 10 + rnd_value(sstatus->dex / 12, sstatus->dex / 4) + ( sd ? sd->status.job_level : 50 ) + 10 * skill_lv
 					   - (status_get_lv(bl) / 10 + rnd_value(tstatus->agi / 6, tstatus->agi / 3) + tstatus->luk / 10 + ( dstsd ? (dstsd->max_weight / 10 - dstsd->weight / 10 ) / 100 : 0));
 			rate = cap_value(rate, skill_lv + sstatus->dex / 20, 100);
-			clif_skill_nodamage(src,*bl,skill_id,0,sc_start(src,bl,type,rate,skill_lv,skill_get_time(skill_id,skill_lv)));
+
+			status_change *tsc_before = tsc;
+			status_change_entry *sce_before = (tsc_before ? tsc_before->getSCE(type) : nullptr);
+
+			int32 duration = sc_start(src, bl, type, rate, skill_lv, skill_get_time(skill_id, skill_lv));
+			status_change *tsc_after = status_get_sc(bl);
+			status_change_entry *sce_after = (tsc_after ? tsc_after->getSCE(type) : nullptr);
+
+			if (duration && sce_after != nullptr && sce_after != sce_before) {
+				clif_skill_nodamage(src, *bl, skill_id, 0, duration);
+				if (sd) {
+					int32 cooldown = pc_get_skillcooldown(sd, skill_id, skill_lv);
+					if (cooldown > 0)
+						skill_blockpc_start(*sd, skill_id, cooldown);
+				}
+			} else if (sd)
+				clif_skill_fail(*sd, skill_id);
 		} else if( sd )
 			 clif_skill_fail( *sd, skill_id );
 		break;
@@ -12016,15 +12146,31 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			rate = status_get_lv(src) / 10 + rnd_value(sstatus->dex / 12, sstatus->dex / 4) + ( sd ? sd->status.job_level : 50 ) + 10 * skill_lv
 					   - (status_get_lv(bl) / 10 + rnd_value(tstatus->agi / 6, tstatus->agi / 3) + tstatus->luk / 10 + ( dstsd ? (dstsd->max_weight / 10 - dstsd->weight / 10 ) / 100 : 0));
 			rate = cap_value(rate, skill_lv + sstatus->dex / 20, 100);
-			if (clif_skill_nodamage(src,*bl,skill_id,0,sc_start(src,bl,type,rate,skill_lv,skill_get_time(skill_id,skill_lv)))) {
-				int32 sp = 100 * skill_lv;
 
-				if( dstmd )
-					sp = dstmd->level;
-				if( !dstmd )
-					status_zap(bl, 0, sp);
+			status_change *tsc_before = tsc;
+			status_change_entry *sce_before = (tsc_before ? tsc_before->getSCE(type) : nullptr);
 
-				status_heal(src, 0, sp / 2, 3);
+			int32 duration = sc_start(src, bl, type, rate, skill_lv, skill_get_time(skill_id, skill_lv));
+			status_change *tsc_after = status_get_sc(bl);
+			status_change_entry *sce_after = (tsc_after ? tsc_after->getSCE(type) : nullptr);
+
+			if (duration && sce_after != nullptr && sce_after != sce_before) {
+				if (clif_skill_nodamage(src, *bl, skill_id, 0, duration)) {
+					int32 sp = 100 * skill_lv;
+
+					if( dstmd )
+						sp = dstmd->level;
+					if( !dstmd )
+						status_zap(bl, 0, sp);
+
+					status_heal(src, 0, sp / 2, 3);
+
+					if (sd) {
+						int32 cooldown = pc_get_skillcooldown(sd, skill_id, skill_lv);
+						if (cooldown > 0)
+							skill_blockpc_start(*sd, skill_id, cooldown);
+					}
+				}
 			} else if( sd )
 				clif_skill_fail( *sd, skill_id );
 		} else if( sd )
@@ -13724,14 +13870,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 static int8 skill_castend_id_check(struct block_list *src, struct block_list *target, uint16 skill_id, uint16 skill_lv) {
 	std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id);
 	int32 inf = skill->inf;
-	status_change *tsc = status_get_sc(target);  
-  
-    // Adicione esta verificação após as linhas existentes  
-    if (target && skill_get_type(skill_id) == BF_MAGIC && skill_id != SA_LANDPROTECTOR) {  
-        if (map_getcell(target->m, target->x, target->y, CELL_CHKLANDPROTECTOR)) {  
-            return USESKILL_FAIL;; // Falha por causa do alvo  
-        }  
-    } 
+	status_change *tsc = status_get_sc(target);
 
 	if (src != target && (status_bl_has_mode(target,MD_SKILLIMMUNE) || (status_get_class(target) == MOBID_EMPERIUM && !skill->inf2[INF2_TARGETEMPERIUM])) && skill_get_casttype(skill_id) == CAST_NODAMAGE)
 		return USESKILL_FAIL_MAX; // Don't show a skill fail message (NoDamage type doesn't consume requirements)
@@ -14163,14 +14302,25 @@ TIMER_FUNC(skill_castend_id){
 		if (!sd || sd->skillitem != ud->skill_id || skill_get_delay(ud->skill_id, ud->skill_lv))
 			ud->canact_tick = i64max(tick + skill_delayfix(src, ud->skill_id, ud->skill_lv), ud->canact_tick - SECURITY_CASTTIME);
 
-		// Cooldown application
 		switch (src->type) {
 			case BL_PC:
 			{
-				// Increases/Decreases cooldown of a skill by item/card bonuses.
 				int32 cooldown = pc_get_skillcooldown(sd, ud->skill_id, ud->skill_lv);
-				if (cooldown > 0)
-					skill_blockpc_start(*sd, ud->skill_id, cooldown);
+				if (cooldown > 0) {
+					switch (ud->skill_id) {
+						case SC_ENERVATION:
+						case SC_GROOMY:
+						case SC_LAZINESS:
+						case SC_UNLUCKY:
+						case SC_WEAKNESS:
+						case SC_IGNORANCE:
+							// Cooldown handled conditionally inside skill logic
+							break;
+						default:
+							skill_blockpc_start(*sd, ud->skill_id, cooldown);
+							break;
+					}
+				}
 			}
 			break;
 			case BL_HOM:
@@ -14433,7 +14583,7 @@ TIMER_FUNC(skill_castend_pos){
 
 		if (!sd || sd->skillitem != ud->skill_id || skill_get_delay(ud->skill_id, ud->skill_lv))
 			ud->canact_tick = i64max(tick + skill_delayfix(src, ud->skill_id, ud->skill_lv), ud->canact_tick - SECURITY_CASTTIME);
-		if (sd) { //Cooldown application
+		if (sd) {
 			int32 cooldown = pc_get_skillcooldown(sd,ud->skill_id, ud->skill_lv);
 			if(cooldown) skill_blockpc_start(*sd, ud->skill_id, cooldown);
 		}
@@ -14604,7 +14754,7 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 	case MG_SAFETYWALL: {
 		int32 dummy = 1;
 
-		if (map_foreachincell(skill_cell_overlap, src->m, x, y, BL_SKILL, skill_id, &dummy, src)) {
+		if (map_foreachincell(skill_cell_overlap, src->m, x, y, BL_SKILL, skill_id, &dummy, src, skill_lv)) {
 			skill_unitsetting(src, skill_id, skill_lv, x, y, 0);
 			return 0; // Don't consume gems if cast on Land Protector
 		}
@@ -14970,7 +15120,7 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 			int32 dummy = 1;
 			clif_skill_poseffect( *src, skill_id, skill_lv, x, y, tick );
 			i = skill_get_splash(skill_id, skill_lv);
-			map_foreachinallarea(skill_cell_overlap, src->m, x-i, y-i, x+i, y+i, BL_SKILL, HW_GANBANTEIN, &dummy, src);
+			map_foreachinallarea(skill_cell_overlap, src->m, x-i, y-i, x+i, y+i, BL_SKILL, HW_GANBANTEIN, &dummy, src, skill_lv);
 		} else {
 			if (sd) clif_skill_fail( *sd, skill_id );
 			return 1;
@@ -15185,12 +15335,15 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 		}
 		break;
 
-	case SC_ESCAPE:
-		skill_unitsetting(src, skill_id, skill_lv, x, y, 0);
+	case SC_ESCAPE: {
+		std::shared_ptr<s_skill_unit_group> new_trap = skill_unitsetting(src, skill_id, skill_lv, x, y, 0);
+		if (new_trap)
+			skill_escape_transfer_victim_to_new_trap(src, new_trap);
 		skill_blown(src, src, skill_get_blewcount(skill_id, skill_lv), unit_getdir(src), BLOWN_IGNORE_NO_KNOCKBACK); // Don't stop the caster from backsliding if special_state.no_knockback is active
 		clif_skill_nodamage(src,*src,skill_id,skill_lv);
 		flag |= 1;
 		break;
+	}
 
 	case LG_BANDING:
 		if( sc && sc->getSCE(SC_BANDING) )
@@ -16318,6 +16471,7 @@ std::shared_ptr<s_skill_unit_group> skill_unitsetting(struct block_list *src, ui
 		skill_clear_group(src, 4);
 		break;
 	case SO_WARMER:
+		if( map_getcell(src->m, x, y, CELL_CHKLANDPROTECTOR) ) 
 		skill_clear_group(src, 8);
 		break;
 	case SO_FIREWALK:
@@ -16546,7 +16700,7 @@ std::shared_ptr<s_skill_unit_group> skill_unitsetting(struct block_list *src, ui
 			map_foreachincell(skill_maelstrom_suction,src->m,ux,uy,BL_SKILL,skill_id,skill_lv);
 
 		// Check active cell to failing or remove current unit
-		map_foreachincell(skill_cell_overlap,src->m,ux,uy,BL_SKILL,skill_id, &alive, src);
+		map_foreachincell(skill_cell_overlap,src->m,ux,uy,BL_SKILL,skill_id, &alive, src, skill_lv);
 		if( !alive )
 			continue;
 
@@ -16619,11 +16773,17 @@ static int32 skill_unit_onplace(struct skill_unit *unit, struct block_list *bl, 
 
 	nullpo_ret(ss = map_id2bl(sg->src_id));
 
-	status_data* tstatus = status_get_status_data(*bl);
-
-	if( (skill_get_type(sg->skill_id) == BF_MAGIC && ((battle_config.land_protector_behavior) ? map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR) : map_getcell(unit->m, unit->x, unit->y, CELL_CHKLANDPROTECTOR)) && sg->skill_id != SA_LANDPROTECTOR) ||
-		map_getcell(bl->m, bl->x, bl->y, CELL_CHKMAELSTROM) )
-		return 0; //AoE skills are ineffective. [Skotlex]
+	status_data* tstatus = status_get_status_data(*bl);  
+  
+	// NÃO bloquear SO_WARMER dentro do Land Protector
+    if( sg->skill_id != SO_WARMER &&
+        (skill_get_type(sg->skill_id) == BF_MAGIC &&
+         ((battle_config.land_protector_behavior)
+             ? map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR)
+             : map_getcell(unit->m, unit->x, unit->y, CELL_CHKLANDPROTECTOR)) &&
+         sg->skill_id != SA_LANDPROTECTOR) ||
+        map_getcell(bl->m, bl->x, bl->y, CELL_CHKMAELSTROM) )  
+        return 0; //AoE skills are ineffective. [Skotlex]
 
 	std::shared_ptr<s_skill_db> skill = skill_db.find(sg->skill_id);
 
@@ -16913,11 +17073,10 @@ static int32 skill_unit_onplace(struct skill_unit *unit, struct block_list *bl, 
 				status_change_start(ss, bl, type, 10000, sg->skill_lv, 0, 0, 0, sg->limit, SCSTART_NOICON);
 			break;
 
-		case UNT_WARMER:
-			if (!sce && bl->type == BL_PC && !battle_check_undead(tstatus->race, tstatus->def_ele) && tstatus->race != RC_DEMON)
-				sc_start2(ss, bl, type, 100, sg->skill_lv, ss->id, skill_get_time(sg->skill_id, sg->skill_lv));
+		case UNT_WARMER:  
+			if (!sce && bl->type == BL_PC && !battle_check_undead(tstatus->race, tstatus->def_ele) && tstatus->race != RC_DEMON)  
+				sc_start2(ss, bl, type, 100, sg->skill_lv, ss->id, skill_get_time(sg->skill_id, sg->skill_lv));  
 			break;
-
 		case UNT_CATNIPPOWDER:
 			if (sg->src_id == bl->id)
 				break; // Does not affect the caster or Boss.
@@ -17030,11 +17189,16 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 		// Units that deals simple attack
 #ifndef RENEWAL
  		case UNT_GRAVITATION:
-#endif
-		case UNT_EARTHSTRAIN:
+#endif	
+		case UNT_FEINTBOMB:  
+		case UNT_PSYCHIC_WAVE:		
+		if (map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))  
+			break; // Não causa dano no Land Protector  
+		skill_attack(skill_get_type(sg->skill_id),ss,unit,bl,sg->skill_id,sg->skill_lv,tick,0);  
+		break; 		
+		case UNT_EARTHSTRAIN:   
 		case UNT_FIREWALK:
 		case UNT_ELECTRICWALK:
-		case UNT_PSYCHIC_WAVE:
 		case UNT_LAVA_SLIDE:
 		case UNT_MAKIBISHI:
 		case UNT_VENOMFOG:
@@ -17237,7 +17401,8 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 
 		case UNT_ANKLESNARE:
 		case UNT_MANHOLE:
-			if( sg->val2 == 0 && tsc && ((sg->unit_id == UNT_ANKLESNARE && skill_id != SC_ESCAPE) || bl->id != sg->src_id) ) {
+			// SC_ESCAPE: trap everyone including the caster. Other ANKLESNARE/MANHOLE: only others.
+			if( sg->val2 == 0 && tsc && ( (sg->unit_id == UNT_ANKLESNARE && sg->skill_id == SC_ESCAPE) || (sg->unit_id == UNT_ANKLESNARE && sg->skill_id != SC_ESCAPE && bl->id != sg->src_id) || (sg->unit_id == UNT_MANHOLE && bl->id != sg->src_id) ) ) {
 				t_tick sec = skill_get_time2(sg->skill_id,sg->skill_lv);
 				if (sg->unit_id == UNT_ANKLESNARE) {
 					t_tick mintime = 30 * (status_get_lv(ss) + 100);
@@ -17678,18 +17843,29 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 			sc_start(ss, bl, type, 100, sg->skill_lv, sg->interval);
 			break;
 
-		case UNT_CLOUD_KILL:
+		case UNT_CLOUD_KILL:  
+			if (!map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR)) 
 			skill_attack(skill_get_type(sg->skill_id), ss, ss, bl, sg->skill_id, sg->skill_lv, tick, SD_ANIMATION|SD_LEVEL);
 			break;
 
-		case UNT_VACUUM_EXTREME:
-			if (tsc && (tsc->getSCE(SC_HALLUCINATIONWALK) || tsc->getSCE(SC_NPC_HALLUCINATIONWALK) || tsc->getSCE(SC_HOVERING) || tsc->getSCE(SC_VACUUM_EXTREME) ||
-				(tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY) && tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY)->val2 == sg->group_id))) // Ignore post delay from other vacuum (this will make stack effect enabled)
-				return 0;
-
-			// Apply effect and suck targets one-by-one each n seconds
-			sc_start4(ss, bl, type, 100, sg->skill_lv, sg->group_id, (sg->val1 << 16) | (sg->val2), ++sg->val3 * 500, (sg->limit - DIFF_TICK(tick, sg->tick)));
-			break;
+		case UNT_VACUUM_EXTREME:{  
+    if (tsc && (tsc->getSCE(SC_HALLUCINATIONWALK) || tsc->getSCE(SC_NPC_HALLUCINATIONWALK) || tsc->getSCE(SC_HOVERING) || tsc->getSCE(SC_VACUUM_EXTREME) ||  
+        (tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY) && tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY)->val2 == sg->group_id)))  
+        return 0;  
+  
+    // Verifica se o alvo está no Land Protector  
+    bool in_landprotector = map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR);  
+      
+    if (in_landprotector) {  
+        // Aplica status com parâmetros originais mas sem efeito de puxo  
+        sc_start4(ss, bl, type, 100, sg->skill_lv, sg->group_id, 0, 0, skill_get_time(sg->skill_id, sg->skill_lv));  
+        break;  
+    }  
+  
+    // Comportamento normal quando não está no Land Protector  
+    sc_start4(ss, bl, type, 100, sg->skill_lv, sg->group_id, (sg->val1 << 16) | (sg->val2), ++sg->val3 * 500, (sg->limit - DIFF_TICK(tick, sg->tick)));  
+    break;  
+}
 
 		case UNT_BANDING:
 			if( battle_check_target(unit, bl, BCT_ENEMY) > 0 && !(tsc && tsc->getSCE(SC_BANDING_DEFENCE)) )
@@ -21241,7 +21417,7 @@ int32 skill_clear_group(block_list *bl, uint8 flag)
 				}
 				break;
 			case SO_WARMER:
-				if (flag & 8) {
+				if (flag & 4) {
 					skill_delunitgroup(*it);
 					count++;
 					deleted = true;
@@ -21436,10 +21612,14 @@ static int32 skill_cell_overlap(struct block_list *bl, va_list ap)
 {
 	uint16 skill_id;
 	int32 *alive;
+	struct block_list *src;
+	uint16 skill_lv;
 	struct skill_unit *unit;
 
 	skill_id = va_arg(ap,int32);
 	alive = va_arg(ap,int32 *);
+	src = va_arg(ap,struct block_list *);
+	skill_lv = (uint16)va_arg(ap,int32);
 	unit = (struct skill_unit *)bl;
 
 	if (unit == nullptr || unit->group == nullptr || (*alive) == 0)
@@ -21449,6 +21629,30 @@ static int32 skill_cell_overlap(struct block_list *bl, va_list ap)
 		return 0;
 
 	switch (skill_id) {
+		case SC_ESCAPE:
+		case HT_ANKLESNARE:
+			// Renew existing trap: same skill, same caster, trap has victim - extend duration instead of placing new unit
+			if (unit->group->skill_id == skill_id && unit->group->src_id == src->id && unit->group->val2 != 0) {
+				t_tick add_dur = skill_get_time2(skill_id, skill_lv);
+				unit->group->limit += add_dur;
+				unit->limit += add_dur;
+				struct block_list *target = map_id2bl(unit->group->val2);
+				if (target) {
+					status_change *tsc = status_get_sc(target);
+					if (tsc && tsc->getSCE(SC_ANKLE) && tsc->getSCE(SC_ANKLE)->timer != INVALID_TIMER) {
+						const struct TimerData *td = get_timer(tsc->getSCE(SC_ANKLE)->timer);
+						if (td && td->func == status_change_timer) {
+							t_tick remaining = DIFF_TICK(td->tick, gettick());
+							if (remaining < 0) remaining = 0;
+							delete_timer(tsc->getSCE(SC_ANKLE)->timer, status_change_timer);
+							tsc->getSCE(SC_ANKLE)->timer = add_timer(gettick() + remaining + add_dur, status_change_timer, target->id, SC_ANKLE);
+						}
+					}
+				}
+				(*alive) = 0;
+				return 1;
+			}
+			[[fallthrough]];
 		case SA_LANDPROTECTOR: {
 				if( unit->group->skill_id == SA_LANDPROTECTOR ) {//Check for offensive Land Protector to delete both. [Skotlex]
 					(*alive) = 0;
@@ -22413,7 +22617,14 @@ int32 skill_unit_timer_sub_onplace(struct block_list* bl, va_list ap)
 
 	std::shared_ptr<s_skill_db> skill = skill_db.find(group->skill_id);
 
-	if( !(skill->inf2[INF2_ISSONG] || skill->inf2[INF2_ISTRAP]) && !skill->inf2[INF2_IGNORELANDPROTECTOR] && group->skill_id != NC_NEUTRALBARRIER && (battle_config.land_protector_behavior ? map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR) : map_getcell(unit->m, unit->x, unit->y, CELL_CHKLANDPROTECTOR)) )
+	// NÃO bloquear SO_WARMER dentro do Land Protector
+	if( group->skill_id != SO_WARMER &&
+	    !(skill->inf2[INF2_ISSONG] || skill->inf2[INF2_ISTRAP]) &&
+	    !skill->inf2[INF2_IGNORELANDPROTECTOR] &&
+	    group->skill_id != NC_NEUTRALBARRIER &&
+	    (battle_config.land_protector_behavior
+	         ? map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR)
+	         : map_getcell(unit->m, unit->x, unit->y, CELL_CHKLANDPROTECTOR)) )
 		return 0; //AoE skills are ineffective. [Skotlex]
 
 #ifdef RENEWAL

@@ -3620,6 +3620,7 @@ void clif_updatestatus( map_session_data& sd, enum _sp type ){
 			clif_par_change(sd, type, sd.weight);
 			break;
 		case SP_MAXWEIGHT:
+			pc_updateweightstatus(sd);
 			clif_par_change(sd, type, sd.max_weight);
 			break;
 		case SP_SPEED:
@@ -9795,6 +9796,8 @@ void clif_refresh(map_session_data *sd)
 		clif_cartlist(sd);
 		clif_updatestatus(*sd,SP_CARTINFO);
 	}
+	// Recalc weight so SC_WEIGHT50/90 match actual %
+	status_calc_weight(sd, (e_status_calc_weight_opt)(CALCWT_ITEM|CALCWT_MAXBONUS));
 	clif_updatestatus(*sd,SP_WEIGHT);
 	clif_updatestatus(*sd,SP_MAXWEIGHT);
 	clif_updatestatus(*sd,SP_STR);
@@ -10730,7 +10733,8 @@ void clif_parse_LoadEndAck(int32 fd,map_session_data *sd)
 		clif_updatestatus(*sd,SP_CARTINFO);
 	}
 
-	// weight
+	// weight - recalc from inventory so SC_WEIGHT50/90 match actual %
+	status_calc_weight(sd, (e_status_calc_weight_opt)(CALCWT_ITEM|CALCWT_MAXBONUS));
 	clif_updatestatus(*sd,SP_WEIGHT);
 	clif_updatestatus(*sd,SP_MAXWEIGHT);
 

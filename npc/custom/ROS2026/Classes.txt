@@ -1,6 +1,6 @@
 izlude,124,148,4	script	Classes	10387,{        
     if( Class != 0 ){        
-         message strcharinfo(0),"Você ja escolheu sua classe!";         
+         message strcharinfo(0),"Vocï¿½ ja escolheu sua classe!";         
         end;        
     }        
     if (sex == 1) {        
@@ -22,11 +22,12 @@ changejob:
 	BaseLevel = .BaseLevel;        
 	JobLevel = .JobLevel;          
     resetstatus;      
-    SkillPoint = 186;  // Dá 128 pontos de habilidade    
-    callsub GetPlatinumSkills;  // Usando callsub em vez de callfunc  
+    SkillPoint = 186;  // Dï¿½ 128 pontos de habilidade    
+    callsub GetPlatinumSkills;  // Usando callsub em vez de callfunc
+    callfunc "F_GetITEM"; 
     end;        
       
-// Função Platinum Skills embutida  
+// Funï¿½ï¿½o Platinum Skills embutida  
 GetPlatinumSkills:  
 	skill "NV_FIRSTAID",1,SKILL_PERM;  
 	switch (BaseClass) {  
