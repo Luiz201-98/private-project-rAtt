@@ -59,16 +59,4 @@
 2025arena5	mapflag	noreturn  
 2025arena5	mapflag	nobranch  
 2025arena5	mapflag	noicewall  
-2025arena5	mapflag	nodrop
-
-izlude,122,128,0	script	BarricadeSpawner	-1,{  
-OnInit:  
-	// Invoca a barricada inicial  
-	monster "izlude",122,128,"Barricade",1905,1,strnpcinfo(3)+"::OnBarricadeDead";  
-	end;  
-  
-OnBarricadeDead:  
-	// Respawna a barricada quando morre  
-	monster "izlude",122,128,"Barricade",1905,1,strnpcinfo(3)+"::OnBarricadeDead";  
-	end;  
-}
+2025arena5	mapflag	nodrop 

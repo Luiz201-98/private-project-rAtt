@@ -1,4 +1,52 @@
-izlude,158,123,4	script	Reparador#izl	84,{  
-    repairall;  
-    end;  
+//============================================================
+// NPC de Refino Seguro - separando da Curandeira
+//============================================================
+turbo_room,86,139,4	script	Refino Seguro	813,{
+
+	// Refino automático seguro (mesma lógica que estava na curandeira)
+	setarray .@safe_weapon[0], 0, 7, 6, 5, 4;        
+	.@safe_armor = 4;        
+	setarray .@slots[0], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R, EQI_HEAD_MID, EQI_HEAD_LOW;        
+	.@refined = 0;        
+	      
+	for (.@i = 0; .@i < getarraysize(.@slots); .@i++) {        
+		.@slot = .@slots[.@i];        
+		if (getequipisequiped(.@slot) && getequipisenableref(.@slot)) {        
+			.@current_refine = getequiprefinerycnt(.@slot);        
+			.@item_type = getiteminfo(getequipid(.@slot), ITEMINFO_TYPE);        
+			        
+			if (.@item_type == IT_WEAPON) {        
+				.@weapon_lv = getequipweaponlv(.@slot);        
+				if (.@weapon_lv > 0 && .@weapon_lv < 5)        
+					.@max_safe = .@safe_weapon[.@weapon_lv];        
+				else        
+					.@max_safe = 0;        
+			} else if (.@item_type == IT_ARMOR) {        
+				.@max_safe = .@safe_armor;        
+			} else {        
+				.@max_safe = 0;        
+			}        
+			        
+			if (.@max_safe > 0 && .@current_refine < .@max_safe) {        
+				.@times = .@max_safe - .@current_refine;        
+				successrefitem .@slot, .@times;        
+				.@refined++;        
+			}        
+		}        
+	}
+
+	end;
+
+
+//------------------------------------------------------------
+// Timer para texto flutuante "Refino Seguro"
+//------------------------------------------------------------
+OnInit:    
+	initnpctimer;    
+	end;    
+
+OnTimer1000:    
+	showscript "Refino Seguro";    
+	setnpctimer 0;    
+	end;    
 }

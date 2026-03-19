@@ -2392,12 +2392,17 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 			combo = 1;
 		break;
 		case SR_GATEOFHELL:
+			// After Fallen Empire combo, SR_GATEOFHELL should NOT be instant cast.
+			// (casttime is kept as configured for the skill)
+			combo = 1;
+			break;
 		case SR_TIGERCANNON:
+			// Tiger Cannon remains instant cast after Fallen Empire combo.
 			if (sc && sc->getSCE(SC_COMBO) &&
-			   sc->getSCE(SC_COMBO)->val1 == SR_FALLENEMPIRE)
+				sc->getSCE(SC_COMBO)->val1 == SR_FALLENEMPIRE)
 				casttime = -1;
 			combo = 1;
-		break;
+			break;
 		case SA_SPELLBREAKER:
 			combo = 1;
 		break;

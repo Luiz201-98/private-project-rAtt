@@ -1,5 +1,5 @@
 // NPC Mercador de Batalha - Entrega itens específicos por classe com limite  
-izlude,146,141,4	script	Mercador de Batalha#battle	99,{  
+turbo_room,90,104,4	script	Mercador de Batalha#battle	99,{  
 	// Verificar se o jogador é de uma classe permitida  
 	if (Class != 4065 && Class != 4078 && Class != 4060) {  
 		mes "[Mercador de Batalha]";  

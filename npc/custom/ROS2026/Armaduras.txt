@@ -1,15 +1,80 @@
-// NPC Loja de Acessórios e Armaduras  
-izlude,158,130,4	script	Equipamentos#equipmentshop	119,{  
-    switch(select("Acessórios:Armaduras:Capas:Elmos:Escudos:Sapatos:Cancelar")) {  
-        case 1: callshop "mercado_acessorios", 1; end;  
-        case 2: callshop "mercado_armaduras", 1; end;  
-        case 3: callshop "mercado_capas", 1; end;  
-        case 4: callshop "mercado_Elmos", 1; end;  
-        case 5: callshop "mercado_escudo", 1; end;  
-        case 6: callshop "mercado_sapatos", 1; end;  
-        case 7: end;  
-    }  
-}  
+// NPC de Elmos    
+turbo_room,93,138,2	script	Elmos#prt	625,{    
+	callshop "mercado_Elmos", 1;    
+	end;    
+OnInit:    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Loja de Elmos";    
+	setnpctimer 0;    
+	end;    
+}    
+    
+// NPC de Armaduras    
+turbo_room,93,136,4	script	Armaduras#prt	10582,{    
+	callshop "mercado_armaduras", 1;    
+	end;    
+OnInit:    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Loja de Armaduras";    
+	setnpctimer 0;    
+	end;    
+}    
+    
+// NPC de Escudos    
+turbo_room,93,132,4	script	Escudos#prt	653,{    
+	callshop "mercado_escudo", 1;    
+	end;    
+OnInit:    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Loja de Escudos";    
+	setnpctimer 0;    
+	end;    
+}    
+    
+// NPC de Capas    
+turbo_room,93,130,2	script	Capas#prt	10022,{    
+	callshop "mercado_capas", 1;    
+	end;    
+OnInit:    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Loja de Capas";    
+	setnpctimer 0;    
+	end;    
+}    
+    
+// NPC de Sapatos    
+turbo_room,93,128,4	script	Sapatos#prt	10057,{    
+	callshop "mercado_sapatos", 1;    
+	end;    
+OnInit:    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Loja de Sapatos";    
+	setnpctimer 0;    
+	end;    
+}    
+    
+// NPC de Acessórios    
+turbo_room,93,126,2	script	Acessórios#prt	10021,{    
+	callshop "mercado_acessorios", 1;    
+	end;    
+OnInit:    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Loja de Acessórios";    
+	setnpctimer 0;    
+	end;    
+}
   
 // Shops existentes (mantidos inalterados)  
 -	shop	mercado_acessorios	-1,2898:150000,2899:200000,2894:100000,2907:120000,2910:120000,2911:120000,2655:100000,2703:150000,2702:90000,2701:100000,2729:100000,2892:90000,32209:120000,32207:120000,32208:120000,32210:120000,2800:100000,2801:100000,2802:500000,2803:100000,2804:100000,2805:100000,2809:150000,2810:200000,2806:150000,2807:200000,2808:250000  

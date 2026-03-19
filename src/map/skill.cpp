@@ -1887,12 +1887,14 @@ int32 skill_additional_effect( struct block_list* src, struct block_list *bl, ui
 		break;
 	case NC_PILEBUNKER:
 		if( rnd()%100 < 25 + 15*skill_lv ) {
+			status_change_end(bl, SC_ADORAMUS); // Aura Sagrada
 			status_change_end(bl, SC_KYRIE);
 			status_change_end(bl, SC_ASSUMPTIO);
 			status_change_end(bl, SC_STEELBODY);
 			status_change_end(bl, SC_GT_CHANGE);
 			status_change_end(bl, SC_GT_REVITALIZE);
 			status_change_end(bl, SC_AUTOGUARD);
+			status_change_end(bl, SC_REFLECTSHIELD); // Escudo Refletor (CR_REFLECTSHIELD)
 			status_change_end(bl, SC_REFLECTDAMAGE);
 			status_change_end(bl, SC_DEFENDER);
 			status_change_end(bl, SC_PRESTIGE);
@@ -3636,6 +3638,19 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 
 	dmg = battle_calc_attack(attack_type,src,bl,skill_id,skill_lv,flag&0xFFF);
 
+	// Mechanic skills that depend on Sorcerer Striking:
+	// If the Mechanic has NC_NEUTRALBARRIER active, require SO_STRIKING (SC_STRIKING) to hit players.
+	// Otherwise, the skill should hit normally.
+	if ((skill_id == NC_VULCANARM || skill_id == NC_COLDSLOWER)
+		&& sd && sc && sc->getSCE(SC_NEUTRALBARRIER) && !sc->getSCE(SC_STRIKING)) {
+		dmg.damage = 0;
+		dmg.damage2 = 0;
+		dmg.dmg_lv = ATK_MISS;
+		dmg.dmotion = 0;
+		dmg.amotion = 0;
+		dmg.div_ = 1;
+	}
+
 	//If the damage source is a unit, the damage is not delayed
 	if (src != dsrc)
 		dmg.amotion = 0;
@@ -4046,7 +4061,13 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 
 	// Blow!
 	if (!(flag&4))
+	{
+		// KN_CHARGEATK: não empurrar jogadores (apenas manter efeito de dano/atq).
+		if (skill_id == KN_CHARGEATK && bl->type == BL_PC)
+			dmg.blewcount = 0;
+
 		skill_attack_blow(src, dsrc, bl, (uint8)dmg.blewcount, skill_id, skill_lv, damage, tick, flag);
+	}
 
 	// Delayed damage must be dealt after the knockback (it needs to know actual position of target)
 	if( dmg.amotion ) {
@@ -5596,7 +5617,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 		uint8 dir = map_calc_dir(bl, src->x, src->y);
 
 		// teleport to target (if not on WoE grounds)
-		if (skill_check_unit_movepos(5, src, bl->x + dirx[dir], bl->y + diry[dir], 0, true))
+		// KN_CHARGEATK: allow advance on Battlegrounds (MF_BATTLEGROUND) and GvG/Battlefields.
+		// We only block WOE via gvg2 checks.
+		if (skill_check_unit_movepos(4, src, bl->x + dirx[dir], bl->y + diry[dir], 0, true))
 			clif_blown(src);
 
 		// cause damage and knockback if the path to target was a straight one
@@ -5606,7 +5629,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 				if (map_getmapdata(src->m)->getMapFlag(MF_PVP))
 					dist += 2; // Knockback is 4 on PvP maps
 #endif
-				skill_blown(src, bl, dist, dir, BLOWN_NONE);
+				// KN_CHARGEATK: nunca knock back em jogadores.
+				if (bl->type != BL_PC)
+					skill_blown(src, bl, dist, dir, BLOWN_NONE);
 			}
 		}
 
@@ -5986,8 +6011,8 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 			if (skill_id == SO_DIAMONDDUST && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
 				break; // No damage should happen if the target is on Land Protector
 
-/* 			if (skill_id == SO_EARTHGRAVE && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
-				break; // No damage should happen if the target is on Land Protector */
+ 			if (skill_id == GN_CRAZYWEED && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break; // No damage should happen if the target is on Land Protector
 
 			if (skill_id == SO_CLOUD_KILL && map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
 				break; // No damage should happen if the target is on Land Protector
@@ -7975,8 +8000,19 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 	case AL_DECAGI:
 	case MER_DECAGI:
+	{
+		int32 rate = 50 + skill_lv * 3 + (status_get_lv(src) + sstatus->int_) / 5;
+
+		rate -= status_get_mdef(bl);
+
+		if (rate < 0)
+			rate = 0;
+		else if (rate > 100)
+			rate = 100;
+
 		clif_skill_nodamage(src, *bl, skill_id, skill_lv,
-			sc_start(src,bl, type, (50 + skill_lv * 3 + (status_get_lv(src) + sstatus->int_)/5), skill_lv, skill_get_time(skill_id,skill_lv)));
+			sc_start(src, bl, type, rate, skill_lv, skill_get_time(skill_id, skill_lv)));
+	}
 		break;
 
 	case AL_CRUCIS:
@@ -12108,34 +12144,48 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case SC_LAZINESS:
 	case SC_UNLUCKY:
 	case SC_WEAKNESS:
-		if( !(tsc && tsc->getSCE(type)) ) {
-			int32 rate;
+    if (!(tsc && tsc->getSCE(type))) {
+        int32 rate;
 
-			if (status_get_class_(bl) == CLASS_BOSS)
-				break;
-			rate = status_get_lv(src) / 10 + rnd_value(sstatus->dex / 12, sstatus->dex / 4) + ( sd ? sd->status.job_level : 50 ) + 10 * skill_lv
-					   - (status_get_lv(bl) / 10 + rnd_value(tstatus->agi / 6, tstatus->agi / 3) + tstatus->luk / 10 + ( dstsd ? (dstsd->max_weight / 10 - dstsd->weight / 10 ) / 100 : 0));
-			rate = cap_value(rate, skill_lv + sstatus->dex / 20, 100);
+        if (status_get_class_(bl) == CLASS_BOSS)
+            break;
 
-			status_change *tsc_before = tsc;
-			status_change_entry *sce_before = (tsc_before ? tsc_before->getSCE(type) : nullptr);
+        rate =
+            (
+                status_get_lv(src) / 10
+                + rnd_value(sstatus->dex / 12, sstatus->dex / 4)
+                + (sd ? sd->status.job_level : 50)
+                + 10 * skill_lv
+            )
+            -
+            (
+                status_get_lv(bl) / 10
+                + rnd_value(tstatus->agi / 6, tstatus->agi / 3)
+                + tstatus->luk / 10
+                + (dstsd ? (dstsd->max_weight - dstsd->weight) / 970 : 0)
+            );
 
-			int32 duration = sc_start(src, bl, type, rate, skill_lv, skill_get_time(skill_id, skill_lv));
-			status_change *tsc_after = status_get_sc(bl);
-			status_change_entry *sce_after = (tsc_after ? tsc_after->getSCE(type) : nullptr);
+        rate = std::max(skill_lv + sstatus->dex / 20, std::min(rate, 100));
 
-			if (duration && sce_after != nullptr && sce_after != sce_before) {
-				clif_skill_nodamage(src, *bl, skill_id, 0, duration);
-				if (sd) {
-					int32 cooldown = pc_get_skillcooldown(sd, skill_id, skill_lv);
-					if (cooldown > 0)
-						skill_blockpc_start(*sd, skill_id, cooldown);
-				}
-			} else if (sd)
-				clif_skill_fail(*sd, skill_id);
-		} else if( sd )
-			 clif_skill_fail( *sd, skill_id );
-		break;
+        status_change *tsc_before = tsc;
+        status_change_entry *sce_before = (tsc_before ? tsc_before->getSCE(type) : nullptr);
+
+        int32 duration = sc_start(src, bl, type, rate, skill_lv, skill_get_time(skill_id, skill_lv));
+        status_change *tsc_after = status_get_sc(bl);
+        status_change_entry *sce_after = (tsc_after ? tsc_after->getSCE(type) : nullptr);
+
+        if (duration && sce_after != nullptr && sce_after != sce_before) {
+            clif_skill_nodamage(src, *bl, skill_id, 0, duration);
+            if (sd) {
+                int32 cooldown = pc_get_skillcooldown(sd, skill_id, skill_lv);
+                if (cooldown > 0)
+                    skill_blockpc_start(*sd, skill_id, cooldown);
+            }
+        } else if (sd)
+            clif_skill_fail(*sd, skill_id);
+    } else if (sd)
+        clif_skill_fail(*sd, skill_id);
+    break;
 
 	case SC_IGNORANCE:
 		if( !(tsc && tsc->getSCE(type)) ) {
@@ -16456,7 +16506,7 @@ std::shared_ptr<s_skill_unit_group> skill_unitsetting(struct block_list *src, ui
 		break;
 	case WM_POEMOFNETHERWORLD:	// Can't be placed on top of Land Protector.
 		if( skill_id == WM_POEMOFNETHERWORLD && map_flag_gvg2(src->m) )
-			target = BCT_ALL;
+			target = BCT_ENEMY;
 		[[fallthrough]];
 	case WM_SEVERE_RAINSTORM:
 	case SO_WATER_INSIGNIA:
@@ -18297,6 +18347,12 @@ int64 skill_unit_ondamaged(struct skill_unit *unit, int64 damage)
 		case UNT_CLAYMORETRAP:
 		case UNT_FREEZINGTRAP:
 		case UNT_ANKLESNARE:
+			// Emergency Escape traps should not be destroyed by generic damage
+			if (sg->skill_id == SC_ESCAPE) {
+				damage = 0;
+				break;
+			}
+			[[fallthrough]];
 		case UNT_ICEWALL:
 		case UNT_WALLOFTHORN:
 		case UNT_REVERBERATION:

@@ -1,0 +1,54 @@
+//===== rAthena Script =======================================
+//= Estilista
+//===== Por: ==================================================
+//= Euphy
+//===== Versão Atual: ========================================
+//= 1.1
+//===== Compatível Com: ======================================
+//= Projeto rAthena
+//===== Descrição: ==========================================
+//= Altera seu estilo de cabelo, cor do cabelo e cor da roupa.
+//===== Comentários Adicionais: =============================
+//= 1.0 Script inicial.
+//= 1.1 Alterado para 'getbattleflag', créditos para Saithis. [Euphy]
+//============================================================
+
+turbo_room,90,101,5	script	Estilista#custom_stylist	606,{
+	setarray .@Estilos[1],
+		getbattleflag("max_cloth_color"),
+		getbattleflag("max_hair_style"),
+		getbattleflag("max_hair_color");
+	setarray .@Aparencia[1],
+		LOOK_CLOTHES_COLOR,
+		LOOK_HAIR,
+		LOOK_HAIR_COLOR;
+	set .@s, select(" ~ Cor da roupa: ~ Estilo de cabelo: ~ Cor do cabelo");
+	set .@Reverter, getlook(.@Aparencia[.@s]);
+	set .@Estilo,1;
+	while(1) {
+		setlook .@Aparencia[.@s], .@Estilo;
+		message strcharinfo(0),"Este é o estilo #"+.@Estilo+".";
+		set .@menu$, " ~ Próximo (^0055FF"+((.@Estilo!=.@Estilos[.@s])?.@Estilo+1:1)+"^000000): ~ Anterior (^0055FF"+((.@Estilo!=1)?.@Estilo-1:.@Estilos[.@s])+"^000000): ~ Ir para...: ~ Reverter para o original (^0055FF"+.@Reverter+"^000000)";
+		switch(select(.@menu$)) {
+		case 1:
+			set .@Estilo, ((.@Estilo != .@Estilos[.@s]) ? .@Estilo+1 : 1);
+			break;
+		case 2:
+			set .@Estilo, ((.@Estilo != 1) ? .@Estilo-1 : .@Estilos[.@s]);
+			break;
+		case 3:
+			message strcharinfo(0),"Escolha um estilo entre 1 - "+.@Estilos[.@s]+".";
+			input .@Estilo,0,.@Estilos[.@s];
+			if (!.@Estilo)
+				set .@Estilo, rand(1,.@Estilos[.@s]);
+			break;
+		case 4:
+			set .@Estilo, .@Reverter;
+			setlook .@Aparencia[.@s], .@Reverter;
+			break;
+	end;
+
+		}
+	}
+}
+

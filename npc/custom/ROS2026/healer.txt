@@ -1,54 +1,69 @@
 //===== rAthena Script =======================================        
-//= Curandeira Master - AGI, Repair, Refino e Montarias        
+//= Curandeira Master - AGI, Repair, Montarias, Restock       
 //===== By: ==================================================        
 //= Custom NPC        
 //===== Description: =========================================        
-//= NPC que aplica AGI, repara itens, refina até nível seguro, reseta cooldowns e entrega montarias        
+//= Aplica AGI, cura, repara, dá montaria, reseta cooldowns
+//= e restoca stuffs salvos pela Maquina de Restoque
 //============================================================        
-        
-izlude,130,140,5	script	Curandeira	10116,{        
-	// Aplica AGI imediatamente      
+
+
+//------------------------------------------------------------
+// Função global: restocar stuffs salvos pela Maquina de Restoque
+//------------------------------------------------------------
+function	script	F_RestockSavedStuffs	{
+
+	// Usa Stuffs_id[] / Stuffs_amt[] salvos no NPC "Maquina de Restoque"
+	// Reabastece apenas o que estiver faltando, com check de peso.
+
+	if (!StuffsSaved) return 0;
+
+	deletearray @tmp_id[0], getarraysize(@tmp_id);
+	deletearray @tmp_amt[0], getarraysize(@tmp_amt);
+
+	for (.@i = 0; .@i < getarraysize(Stuffs_id); .@i++) {
+		.@id   = Stuffs_id[.@i];
+		.@need = Stuffs_amt[.@i];
+		.@have = countitem(.@id);
+		.@miss = .@need - .@have;
+		if (.@miss <= 0) continue;
+		.@idx = getarraysize(@tmp_id);
+		@tmp_id[.@idx]  = .@id;
+		@tmp_amt[.@idx] = .@miss;
+	}
+
+	if (getarraysize(@tmp_id) == 0) return 0;
+
+	if (!checkweight2(@tmp_id, @tmp_amt)) {
+		// sem peso, não entrega nada
+		return -1;
+	}
+
+	for (.@i = 0; .@i < getarraysize(@tmp_id); .@i++) {
+		if (@tmp_amt[.@i] > 0)
+			getitem @tmp_id[.@i], @tmp_amt[.@i];
+	}
+
+	return 1;
+}
+
+
+//------------------------------------------------------------
+// NPC Curandeira
+//------------------------------------------------------------
+turbo_room,99,111,4	script	Curandeira	10039,{        
+	// Buff AGI e cura total     
 	sc_start SC_INCREASEAGI,2400000,10;    
 	percentheal 100,100;    
-	      
-	// Refino automático      
-	setarray .@safe_weapon[0], 0, 7, 6, 5, 4;        
-	.@safe_armor = 4;        
-	setarray .@slots[0], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R, EQI_HEAD_MID, EQI_HEAD_LOW;        
-	.@refined = 0;        
-	      
-	for (.@i = 0; .@i < getarraysize(.@slots); .@i++) {        
-		.@slot = .@slots[.@i];        
-		if (getequipisequiped(.@slot) && getequipisenableref(.@slot)) {        
-			.@current_refine = getequiprefinerycnt(.@slot);        
-			.@item_type = getiteminfo(getequipid(.@slot), ITEMINFO_TYPE);        
-			        
-			if (.@item_type == IT_WEAPON) {        
-				.@weapon_lv = getequipweaponlv(.@slot);        
-				if (.@weapon_lv > 0 && .@weapon_lv < 5) {        
-					.@max_safe = .@safe_weapon[.@weapon_lv];        
-				} else {        
-					.@max_safe = 0;        
-				}        
-			} else if (.@item_type == IT_ARMOR) {        
-				.@max_safe = .@safe_armor;        
-			} else {        
-				.@max_safe = 0;        
-			}        
-			        
-			if (.@max_safe > 0 && .@current_refine < .@max_safe) {        
-				.@times = .@max_safe - .@current_refine;        
-				successrefitem .@slot, .@times;        
-				.@refined++;        
-			}        
-		}        
-	}      
-	      
-	// Repara itens      
+
+	// Repara todos os equipamentos      
 	repairall;        
 	      
 	// Sistema de Montarias  
-	callsub S_MONTARIAS;  
+	callsub S_MONTARIAS;
+
+	// Restoca stuffs salvos pela Maquina de Restoque
+	callfunc "F_RestockSavedStuffs";  
 	      
 	// Reseta cooldowns de todas as habilidades      
 	atcommand "@resetcooltime";      

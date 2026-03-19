@@ -634,6 +634,12 @@ bool bg_member_respawn(map_session_data *sd)
 		if (bgteam->cemetery.map == 0)
 			return false; // Respawn not handled by Core
 
+		// Para a arena Toy 7x7 (25ros03_01) não fazemos respawn automático:
+		// o jogador permanece morto até o fim da partida, controlado via script.
+		if (bgteam->cemetery.map == mapindex_name2id("25ros03_01")) {
+			return true; // Respawn "tratado", mas sem mover/reviver o jogador
+		}
+
 		pc_setpos(sd, bgteam->cemetery.map, bgteam->cemetery.x, bgteam->cemetery.y, CLR_OUTSIGHT);
 		status_revive(sd, 1, 100);
 

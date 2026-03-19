@@ -1,286 +1,232 @@
-// ==============================================================================          
-// Arena de Batalha 7vs7 - Sistema Profissional de Battleground          
-// Desenvolvido por Rodrigo aka narutekz - Adaptado para 25ros03_01          
-// ==============================================================================          
-          
-// NPCs de Registro          
-// *********************************************************************          
-          
-izlude,131,136,5	script	Sala de Espera::Arena_Azul	418,{          
-	end;          
-          
-OnInit:          
-	waitingroom "Arena RWC 01 - Time Azul",2,"Arena_BG::OnEntradaAzul",1;          
-	end;          
-	          
-OnEntradaBG:          
-	set $@ArenaBG_id1, waitingroom2bg("izlude",92,104,"Arena_BG::OnSaidaAzul","Arena_BG::OnMorteAzul");          
-	end;          
-}          
-          
-izlude,124,136,4	script	Sala de Espera::Arena_Vermelha	414,{          
-	end;          
-          
-OnInit:          
-	waitingroom "Arena RWC 01 - Time Vermelho",2,"Arena_BG::OnEntradaVermelha",1;          
-	end;          
-          
-OnEntradaBG:          
-	set $@ArenaBG_id2, waitingroom2bg("izlude",92,104,"Arena_BG::OnSaidaVermelha","Arena_BG::OnMorteVermelha");          
-	end;          
-}          
-          
-// Motor de Battleground          
-// *********************************************************************          
-          
--	script	Arena_BG	-1,{          
-	end;          
-          
-OnEntradaAzul:          
-OnEntradaVermelha:          
-	donpcevent "Arena_BG::OnVerificarProntos";          
-	end;          
-          
-OnSaidaAzul:          
-	set BG_Delay_Tick, gettimetick(2) + 2000;          
-OnMorteAzul:          
-	if( $@ArenaBG == 2 )          
-	{          
-		set .Azul_Count, .Azul_Count - 1;          
-		set .Vermelho_Score, .Vermelho_Score + 1;          
-		bg_updatescore "25ros03_01",.Azul_Score,.Vermelho_Score;          
-		mapannounce "25ros03_01","Time Azul: "+.Azul_Count+" jogador(es) restante(s)",bc_map,0x00bfff;          
-		if( .Azul_Count < 1 ) donpcevent "Arena_BG::OnVitoriaVermelha";          
-	}          
-	end;          
-          
-OnSaidaVermelha:          
-	set BG_Delay_Tick, gettimetick(2) + 2000;          
-OnMorteVermelha:          
-	if( $@ArenaBG == 2 )          
-	{          
-		set .Vermelho_Count, .Vermelho_Count - 1;          
-		set .Azul_Score, .Azul_Score + 1;          
-		bg_updatescore "25ros03_01",.Azul_Score,.Vermelho_Score;          
-		mapannounce "25ros03_01","Time Vermelho: "+.Vermelho_Count+" jogador(es) restante(s)",bc_map,0xff6347;          
-		if( .Vermelho_Count < 1 ) donpcevent "Arena_BG::OnVitoriaAzul";          
-	}          
-	end;          
-          
-OnVerificarProntos:          
-	if( $@ArenaBG )          
-		end;          
-	set .@Azul, getwaitingroomstate(0,"Arena_Azul");          
-	set .@Vermelho, getwaitingroomstate(0,"Arena_Vermelha");          
-          
-	if( !.@Azul && !.@Vermelho ) {          
-		end;          
-	}          
-          
-	if( .@Azul > 0 || .@Vermelho > 0 )          
-	{          
-		if( .@Azul > 0 && .@Vermelho > 0 && !agitcheck() && $@Arena_Flood < gettimetick(2) )          
-		{          
-			announce "Arena RWC 01 | Time Azul: " + .@Azul + " jogador(es), Time Vermelho: " + .@Vermelho + " jogador(es)",0,0xFFA500;          
-			set $@Arena_Flood, gettimetick(2) + 15;          
-		}          
-		else if( .@Azul > 0 || .@Vermelho > 0 )          
-		{          
-			mapannounce "izlude","Arena RWC 01 | Time Azul: " + .@Azul + " jogador(es), Time Vermelho: " + .@Vermelho + " jogador(es)",1,0xFFA500;          
-		}          
-	}          
-          
-	if( .@Azul < 1 || .@Vermelho < 1 )          
-		end;          
-          
-	set $@ArenaBG, 1; // Iniciando          
-	donpcevent "Arena_Vermelha::OnEntradaBG";          
-	donpcevent "Arena_Azul::OnEntradaBG";          
-	donpcevent "Arena_BG::OnInicio";          
-	end;          
-          
-OnInicio:          
-	mapannounce "izlude","Os dois times entraram na Arena de Batalha!", bc_yellow;          
-	set $@ArenaBG_Victory, 0;          
-	// Transportar Times          
-	bg_warp $@ArenaBG_id1,"25ros03_01",46,80;          
-	bg_warp $@ArenaBG_id2,"25ros03_01",152,80;             
-          
-	// Barreiras do Time Azul          
-	setwall "25ros03_01",60,81,1,4,0,"arena_wall_a1";          
-	setwall "25ros03_01",60,80,1,4,0,"arena_wall_a2";          
-	setwall "25ros03_01",60,79,1,4,0,"arena_wall_a3";          
-	setwall "25ros03_01",60,78,1,4,0,"arena_wall_a4";          
-          
-	// Barreiras do Time Vermelho          
-	setwall "25ros03_01",139,78,1,4,0,"arena_wall_v1";          
-	setwall "25ros03_01",139,79,1,4,0,"arena_wall_v2";          
-	setwall "25ros03_01",139,80,1,4,0,"arena_wall_v3";          
-	setwall "25ros03_01",139,81,1,4,0,"arena_wall_v4";          
-          
-	sleep 100;          
-	// Placar          
-	set .Azul_Score, 0;          
-	set .Vermelho_Score, 0;          
-	initnpctimer;          
-	end;          
-          
-OnTimer4000:          
-	mapannounce "25ros03_01","A batalha comeÁar· em 20 segundos!", bc_yellow;          
-	end;          
-          
-OnTimer20000:          
-	mapannounce "25ros03_01","A batalha comeÁar· em 5 segundos!", bc_yellow;          
-	end;          
-          
-OnTimer21000:          
-	mapannounce "25ros03_01","A batalha comeÁar· em 4 segundos!", bc_yellow;          
-	end;          
-          
-OnTimer22000:          
-	mapannounce "25ros03_01","A batalha comeÁar· em 3 segundos!", bc_yellow;          
-	end;          
-          
-OnTimer23000:          
-	mapannounce "25ros03_01","A batalha comeÁar· em 2 segundos!", bc_yellow;          
-	end;	          
-OnTimer24000:          
-	mapannounce "25ros03_01","A batalha comeÁar· em 1 segundo!", bc_yellow;          
-	end;          
-          
-OnTimer25000:          
-	// Inicializar contagem de jogadores          
-	sleep 300;          
-	set .Azul_Count, bg_get_data($@ArenaBG_id1, 0);          
-	set .Vermelho_Count, bg_get_data($@ArenaBG_id2, 0);          
-	    
-	// Inicializar o placar e emblemas imediatamente    
-	bg_updatescore "25ros03_01",.Azul_Score,.Vermelho_Score;    
-	    
-	set $@ArenaBG, 2; // Em Jogo          
-	// Remover barreiras          
-	delwall "arena_wall_a1";          
-	delwall "arena_wall_a2";          
-	delwall "arena_wall_a3";          
-	delwall "arena_wall_a4";          
-	delwall "arena_wall_v1";          
-	delwall "arena_wall_v2";          
-	delwall "arena_wall_v3";          
-	delwall "arena_wall_v4";          
-	end;  
-	  
-OnTimer25001:          
-	mapannounce "25ros03_01","A batalha comeÁou! Boa sorte a todos os competidores!", bc_yellow;          
-	killmonsterall "25ros03_01";          
-	end;          
-          
-OnTimer420000:          
-	mapannounce "25ros03_01","A batalha terminar· em 30 segundos!", bc_yellow;          
-	end;          
-          
-OnTimer450000:          
-	if( .Vermelho_Count > .Azul_Count )          
-		donpcevent "Arena_BG::OnVitoriaVermelha";          
-	else if( .Vermelho_Count < .Azul_Count )          
-		donpcevent "Arena_BG::OnVitoriaAzul";          
-	else          
-	{ // Empate          
-		set $@ArenaBG, 3;          
-		set $@ArenaBG_Victory, 3;          
-		stopnpctimer;          
-		sleep 2000;          
-		mapannounce "25ros03_01","A batalha terminou em empate!", bc_yellow;          
-		donpcevent "Arena_BG::OnParar";          
-	}          
-	end;          
-          
-OnVitoriaAzul:        
-	set $@ArenaBG, 3;        
-	set $@ArenaBG_Victory, 1;        
-	  
-	// Obter nome da guild vencedora - mÈtodo direto  
-	set .@guild_name$, "Sem Guild";  
-	  
-	// Verificar guild do player atual (contexto da morte)  
-	if( getcharid(2) > 0 ) {  
-		set .@guild_id, getcharid(2);  
-		requestguildinfo(.@guild_id);  
-		sleep 300;  
-		set .@guild_name$, getguildname(.@guild_id);  
-	}  
-	  
-	stopnpctimer;        
-	sleep 1000;	        
-	mapannounce "25ros03_01","?? A Guild "+.@guild_name$+" foi vencedora pelo Time Azul! ParabÈns aos campeıes!",bc_map,0x00bfff;        
-	sleep 3000;        
-	donpcevent "Arena_BG::OnParar";        
-	end;        
-  
-OnVitoriaVermelha:        
-	set $@ArenaBG, 3;        
-	set $@ArenaBG_Victory, 2;        
-	  
-	// Obter nome da guild vencedora - mÈtodo direto  
-	set .@guild_name$, "Sem Guild";  
-	  
-	// Verificar guild do player atual (contexto da morte)  
-	if( getcharid(2) > 0 ) {  
-		set .@guild_id, getcharid(2);  
-		requestguildinfo(.@guild_id);  
-		sleep 300;  
-		set .@guild_name$, getguildname(.@guild_id);  
-	}  
-	  
-	stopnpctimer;        
-	sleep 1000;        
-	mapannounce "25ros03_01","?? A Guild "+.@guild_name$+" foi vencedora pelo Time Vermelho! ParabÈns aos campeıes!",bc_map,0xff6347;        
-	sleep 3000;        
-	donpcevent "Arena_BG::OnParar";        
-	end;    
-          
-OnParar:          
-	mapwarp "25ros03_01","izlude",127,136;          
-	donpcevent "Arena_BG_Saida::OnInicio";          
-	end;          
-          
-OnReset:          
-	stopnpctimer;          
-	stopnpctimer "Arena_BG_Saida";          
-	set .Vermelho_Count, 0;          
-	set .Azul_Count, 0;          
-	set .Vermelho_Score, 0;          
-	set .Azul_Score, 0;          
-	set $@ArenaBG_Victory, 0;          
-	if( $@ArenaBG_id1 ) {          
-		bg_destroy $@ArenaBG_id1;          
-		set $@ArenaBG_id1, 0;          
-	}          
-	if( $@ArenaBG_id2 ) {          
-		bg_destroy $@ArenaBG_id2;          
-		set $@ArenaBG_id2, 0;          
-	}          
-	sleep 2000;          
-	mapwarp "25ros03_01","izlude",127,136;          
-	sleep 2000;          
-	maprespawnguildid "25ros03_01",0,3;          
-	bg_updatescore "25ros03_01",0,0;          
-	sleep 2000;          
-	set $@ArenaBG, 0;          
-	donpcevent "Arena_BG::OnVerificarProntos";          
-	end;          
-}          
-          
--	script	Arena_BG_Saida	-1,{          
-	end;          
-          
-OnInicio:          
-	initnpctimer;          
-	end;          
-          
-OnTimer50000:          
-	mapannounce "25ros03_01","Todos ser„o teleportados em 10 segundos!",1,0x696969;          
-	end;          
-OnTimer3000:          
-	donpcevent "Arena_BG::OnReset";          
-	end;          
+// NPC dentro de gon_test que confirma os l√≠deres enviados pelo registro 7x7
+// e depois libera a arena escolhida (a primeira √© a Toy Factory).
+// Coordenadas ajustadas para a posi√ß√£o original vis√≠vel no mapa.
+gon_test,55,94,5	script	Arena 7x7	4_M_01,{
+	mes "[Arena 7x7]";
+	mes "Aqui come?a o duelo entre as guilds.";
+	mes "Voc? deve ter sido enviado pelo registro 7x7.";
+	next;
+
+	// Precisa estar em guild
+	if (!getcharid(2)) {
+		mes "[Arena 7x7]";
+		mes "Apenas l?deres de guild podem usar este NPC.";
+		close;
+	}
+
+	// Verifica lado salvo pelo registro 7x7
+	if (#7x7_side == 1) {
+		set .@side$, "Azul";
+		set .@is_blue, 1;
+	} else if (#7x7_side == 2) {
+		set .@side$, "Vermelho";
+		set .@is_blue, 0;
+	} else {
+		mes "[Arena 7x7]";
+		mes "Voc? n?o foi marcado como participante do 7x7.";
+		mes "Use primeiro os NPCs de registro na sala 7x7.";
+		close;
+	}
+
+	mes "[Arena 7x7]";
+	mes "Voc? ? o l?der do Time " + .@side$ + ".";
+	mes "Quando os dois l?deres confirmarem aqui, ser?o enviados para a arena.";
+	next;
+
+	if (select("Confirmar minha entrada:Cancelar") == 2) {
+		mes "[Arena 7x7]";
+		mes "Confirma??o cancelada.";
+		close;
+	}
+
+	// Salva qual conta confirmou
+	if (.@is_blue)
+		set $@7x7_blue_ready, getcharid(3);
+	else
+		set $@7x7_red_ready, getcharid(3);
+
+	mes "[Arena 7x7]";
+	mes "Confirma??o registrada. Aguardando o outro l?der...";
+	close2;
+
+	// Se os dois j√° confirmaram, enviamos as parties para a bat_room
+	// e, ap√≥s 8 segundos, disparamos o motor principal Toy7_BG.
+	if ($@7x7_blue_ready && $@7x7_red_ready) {
+		if (!$7x7_in_match) {
+			set $7x7_in_match, 1;
+
+			// Envia todos os membros das duas parties para a sala de espera (bat_room)
+			if ($toy7_team1_party) {
+				getpartymember $toy7_team1_party, 1;
+				getpartymember $toy7_team1_party, 2;
+				for (set .@i,0; .@i < $@partymembercount; set .@i,.@i+1) {
+					if (!isloggedin($@partymemberaid[.@i])) continue;
+					warpchar "bat_room",100,100,$@partymemberaid[.@i];
+				}
+			}
+			if ($toy7_team2_party) {
+				getpartymember $toy7_team2_party, 1;
+				getpartymember $toy7_team2_party, 2;
+				for (set .@j,0; .@j < $@partymembercount; set .@j,.@j+1) {
+					if (!isloggedin($@partymemberaid[.@j])) continue;
+					warpchar "bat_room",100,100,$@partymemberaid[.@j];
+				}
+			}
+
+			// Aguarda 8 segundos na bat_room e ent√£o inicia a BG Toy Factory
+			donpcevent "Arena_BG::OnToy7StartAfterWait";
+		}
+
+		// Limpa flags de ready (a rodada j√° foi iniciada)
+		set $@7x7_blue_ready, 0;
+		set $@7x7_red_ready, 0;
+	}
+	end;
+}
+
+// Motor da arena 7x7 em 25ros03_01
+-	script	Arena_BG	-1,{
+	end;
+
+OnToy7StartAfterWait:
+	// Espera 8 segundos com os times na bat_room antes de ir para a Toy Factory
+	sleep 8000;
+	donpcevent "Toy7_BG::OnStartFromLobby";
+	end;
+
+OnInicio:
+	// Mensagem geral de in?cio
+	mapannounce "25ros03_01","Os dois times entraram na Arena de Batalha Toy Factory!", bc_yellow;
+
+	// Barreiras do Time Azul
+	setwall "25ros03_01",60,81,1,4,0,"arena_wall_a1";
+	setwall "25ros03_01",60,80,1,4,0,"arena_wall_a2";
+	setwall "25ros03_01",60,79,1,4,0,"arena_wall_a3";
+	setwall "25ros03_01",60,78,1,4,0,"arena_wall_a4";
+
+	// Barreiras do Time Vermelho
+	setwall "25ros03_01",139,78,1,4,0,"arena_wall_v1";
+	setwall "25ros03_01",139,79,1,4,0,"arena_wall_v2";
+	setwall "25ros03_01",139,80,1,4,0,"arena_wall_v3";
+	setwall "25ros03_01",139,81,1,4,0,"arena_wall_v4";
+
+	// Marca estado da arena (1 = prepara??o, 2 = em jogo)
+	set $@ArenaBG, 1;
+
+	// Zera placar visual (HUD vai mostrar jogadores vivos)
+	set .Azul_Score, 0;
+	set .Vermelho_Score, 0;
+
+	// Mostra HUD de quantos jogadores vivos tem em cada time
+	// (valores j? calculados antes em $7x7_blue_alive / $7x7_red_alive)
+	bg_updatescore "25ros03_01",$7x7_blue_alive,$7x7_red_alive;
+
+	// Inicia contador interno
+	initnpctimer;
+	end;
+
+// Contagem de 25 segundos dentro da arena antes de liberar as paredes
+OnTimer4000:
+	mapannounce "25ros03_01","A batalha come?ar? em 20 segundos!", bc_yellow;
+	end;
+
+OnTimer20000:
+	mapannounce "25ros03_01","A batalha come?ar? em 5 segundos!", bc_yellow;
+	end;
+
+OnTimer21000:
+	mapannounce "25ros03_01","A batalha come?ar? em 4 segundos!", bc_yellow;
+	end;
+
+OnTimer22000:
+	mapannounce "25ros03_01","A batalha come?ar? em 3 segundos!", bc_yellow;
+	end;
+
+OnTimer23000:
+	mapannounce "25ros03_01","A batalha come?ar? em 2 segundos!", bc_yellow;
+	end;
+
+OnTimer24000:
+	mapannounce "25ros03_01","A batalha come?ar? em 1 segundo!", bc_yellow;
+	end;
+
+OnTimer25000:
+	// Libera as barreiras e come?a o duelo
+	set $@ArenaBG, 2;
+	delwall "arena_wall_a1";
+	delwall "arena_wall_a2";
+	delwall "arena_wall_a3";
+	delwall "arena_wall_a4";
+	delwall "arena_wall_v1";
+	delwall "arena_wall_v2";
+	delwall "arena_wall_v3";
+	delwall "arena_wall_v4";
+
+	mapannounce "25ros03_01","A batalha come?ou! Boa sorte aos dois times!", bc_yellow;
+	stopnpctimer;
+	end;
+}
+
+// Controle de mortes e vit?ria em 25ros03_01 (GVG 7x7)
+-	script	Arena_Death_7x7	-1,{
+
+OnPCDieEvent:
+	// S? conta mortes dentro da arena
+	if (strcharinfo(3) != "25ros03_01")
+		end;
+
+	set .@gid, getcharid(2);
+
+	// Azul morreu -> diminui vivos do Azul
+	if (.@gid == $7x7_blue_gid && $7x7_blue_alive > 0 && $@ArenaBG == 2) {
+		set $7x7_blue_alive, $7x7_blue_alive - 1;
+		// HUD mostra quantos vivos restam em cada time
+		bg_updatescore "25ros03_01",$7x7_blue_alive,$7x7_red_alive;
+		mapannounce "25ros03_01","Time Azul: "+$7x7_blue_alive+" jogador(es) restante(s).",bc_map,0x00bfff;
+		if ($7x7_blue_alive < 1)
+			donpcevent "Arena_Death_7x7::OnVitoriaVermelha";
+		end;
+	}
+
+	// Vermelho morreu -> diminui vivos do Vermelho
+	if (.@gid == $7x7_red_gid && $7x7_red_alive > 0 && $@ArenaBG == 2) {
+		set $7x7_red_alive, $7x7_red_alive - 1;
+		bg_updatescore "25ros03_01",$7x7_blue_alive,$7x7_red_alive;
+		mapannounce "25ros03_01","Time Vermelho: "+$7x7_red_alive+" jogador(es) restante(s).",bc_map,0xff6347;
+		if ($7x7_red_alive < 1)
+			donpcevent "Arena_Death_7x7::OnVitoriaAzul";
+		end;
+	}
+	end;
+
+OnVitoriaAzul:
+	mapannounce "25ros03_01","O Time Azul venceu o duelo 7x7!",bc_map,0x00bfff;
+	donpcevent "Arena_Death_7x7::OnEncerrar";
+	end;
+
+OnVitoriaVermelha:
+	mapannounce "25ros03_01","O Time Vermelho venceu o duelo 7x7!",bc_map,0xff6347;
+	donpcevent "Arena_Death_7x7::OnEncerrar";
+	end;
+
+OnEncerrar:
+	// Pequeno delay para mensagens
+	sleep 2000;
+
+	// Teleporta todos de volta para turbo_room 100,100
+	mapwarp "25ros03_01","turbo_room",100,100;
+
+	// Reseta vari?veis globais
+	set $7x7_blue_alive, 0;
+	set $7x7_red_alive, 0;
+	set $7x7_blue_ready, 0;
+	set $7x7_red_ready, 0;
+	set $7x7_blue_gid, 0;
+	set $7x7_red_gid, 0;
+	set $@ArenaBG, 0;
+	set $7x7_in_match, 0;
+
+	// Zera HUD (0 vivos de cada lado)
+	bg_updatescore "25ros03_01",0,0;
+	end;
 }

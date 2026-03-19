@@ -1,4 +1,4 @@
-izlude,155,141,4	script	Gerenciadora de Builds	10125,{  
+turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{  
 	// ==============================    
 	// SISTEMA DE GERENCIADOR DE BUILDS    
 	// ==============================    

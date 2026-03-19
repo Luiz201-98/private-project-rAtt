@@ -1,0 +1,294 @@
+turbo_room,70,133,4	script	Gestão de Cartas	10084,{
+
+	// NPC de gestão de cartas: compra de cartas MVP com Runas de Troca,
+	// remoção de cartas de equipamentos e devolução de cartas MVP.
+
+	mes "[Gestão de Cartas]";
+	mes "Bem-vindo ao serviço de gestão de cartas.";
+	mes "Aqui você pode adquirir cartas de MVP utilizando ^0080FFRunas de Troca^000000, remover cartas de equipamentos ou devolver cartas previamente adquiridas.";
+	next;
+
+	switch (select("Adquirir cartas de MVP:Remover cartas de equipamentos:Devolver cartas de MVP:Encerrar")) {
+
+	//----------------------------------------------------------------
+	// 1) Comprar cartas MVP usando Runas de Troca (item 7831)
+	//----------------------------------------------------------------
+	case 1:
+		mes "[Gestão de Cartas]";
+		mes "As ^0080FFRunas de Troca^000000 são vinculadas ao personagem e podem ser convertidas em cartas de MVP.";
+		mes "Escolha com atenção: o número de Runas de Troca é limitado.";
+		next;
+
+		switch (select(
+			"^FFCC00Carta Bijou^000000  (10 Runas de Troca)",
+			"^FFCC00Carta Cutie^000000  (1 Runa de Troca)",
+			"^FFCC00Carta Cavaleiro Amaldiçoado Imortal^000000  (1 Runa de Troca)",
+			"^FFCC00Carta Vento da Colina Imortal^000000  (1 Runa de Troca)",
+			"^FFCC00Carta Beelzebub^000000  (5 Runas de Troca)",
+			"^FFCC00Carta Tao Gunka^000000  (10 Runas de Troca)",
+			"^FFCC00Carta Eremes (MVP)^000000  (10 Runas de Troca)",
+			"^FFCC00Carta Maya Macho^000000  (10 Runas de Troca)",
+			"^FFCC00Carta Kiel-D-01^000000  (5 Runas de Troca)"
+		)) {
+		// Bijou
+		case 1:
+			if (countitem(7831) < 10) { mes "Você não possui ^0080FF10 Runas de Troca^000000."; close; }
+			if (!checkweight(4636,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,10;
+			getitem 4636,1; // Carta Bijou
+			break;
+		// Cutie
+		case 2:
+			if (countitem(7831) < 1) { mes "Você não possui ^0080FF1 Runa de Troca^000000."; close; }
+			if (!checkweight(27152,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,1;
+			getitem 27152,1; // Carta Cutie
+			break;
+		// Immortal Cursed Knight
+		case 3:
+			if (countitem(7831) < 1) { mes "Você não possui ^0080FF1 Runa de Troca^000000."; close; }
+			if (!checkweight(31024,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,1;
+			getitem 31024,1; // Carta Cavaleiro Amaldiçoado Imortal
+			break;
+		// Immortal Wind Ghost
+		case 4:
+			if (countitem(7831) < 1) { mes "Você não possui ^0080FF1 Runa de Troca^000000."; close; }
+			if (!checkweight(31025,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,1;
+			getitem 31025,1; // Carta Vento da Colina Imortal
+			break;
+		// Beelzebub
+		case 5:
+			if (countitem(7831) < 5) { mes "Você não possui ^0080FF5 Runas de Troca^000000."; close; }
+			if (!checkweight(4145,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,5;
+			getitem 4145,1; // Carta Beelzebub
+			break;
+		// TGK
+		case 6:
+			if (countitem(7831) < 10) { mes "Você não possui ^0080FF10 Runas de Troca^000000."; close; }
+			if (!checkweight(4302,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,10;
+			getitem 4302,1; // Carta Tao Gunka
+			break;
+		// Eremes MVP
+		case 7:
+			if (countitem(7831) < 10) { mes "Você não possui ^0080FF10 Runas de Troca^000000."; close; }
+			if (!checkweight(4359,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,10;
+			getitem 4359,1; // Carta Eremes (MVP)
+			break;
+		// Maya Purple (Maya Macho no seu script original)
+		case 8:
+			if (countitem(7831) < 10) { mes "Você não possui ^0080FF10 Runas de Troca^000000."; close; }
+			if (!checkweight(4198,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,10;
+			getitem 4198,1; // Carta Maya Macho
+			break;
+		// Kiel
+		case 9:
+			if (countitem(7831) < 5) { mes "Você não possui ^0080FF5 Runas de Troca^000000."; close; }
+			if (!checkweight(4403,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 7831,5;
+			getitem 4403,1; // Carta Kiel-D-01
+			break;
+		}
+		next;
+		mes "[Gestão de Cartas]";
+		mes "Transação concluída com sucesso. Utilize suas cartas com responsabilidade.";
+		close;
+
+	//----------------------------------------------------------------
+	// 2) Remover cartas de equipamentos
+	//----------------------------------------------------------------
+	case 2:
+		mes "[Gestão de Cartas]";
+		mes "Selecione o equipamento do qual deseja remover as cartas.";
+	  
+		// slots de equipamento
+		setarray .@equip_slots[0], EQI_HEAD_TOP, EQI_HEAD_MID, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R;  
+		setarray .@slot_names$[0], "Topo", "Meio", "Armadura", "Mão Esquerda", "Mão Direita", "Capa", "Calçados", "Acessório Esquerdo", "Acessório Direito";  
+	      
+		set .@menu$, "";  
+	  
+		// constrói menu com estado visual
+		for (set .@i, 0; .@i < getarraysize(.@equip_slots); set .@i, .@i + 1) {  
+			if (getequipisequiped(.@equip_slots[.@i])) {  
+				if (getequipcardcnt(.@equip_slots[.@i]) > 0) {  
+					// item com cartas
+					set .@menu$, .@menu$ + .@slot_names$[.@i] + " [^FF0000" + getequipname(.@equip_slots[.@i]) + "^000000]:";  
+				} else {  
+					// item sem cartas
+					set .@menu$, .@menu$ + .@slot_names$[.@i] + " [^999999" + getequipname(.@equip_slots[.@i]) + "^000000]:";  
+				}  
+			} else {  
+				// slot vazio
+				set .@menu$, .@menu$ + "^999999" + .@slot_names$[.@i] + " (vazio)^000000:";  
+			}  
+		}  
+	  
+		next;  
+		set .@selected, select(.@menu$) - 1; // índice base 0  
+	      
+		if (.@selected < 0 || .@selected >= getarraysize(.@equip_slots)) {  
+			mes "[Gestão de Cartas]";
+			mes "Seleção inválida.";  
+			close;  
+		}  
+	  
+		set .@part, .@equip_slots[.@selected];  
+	  
+		if (!getequipisequiped(.@part)) {  
+			mes "[Gestão de Cartas]";
+			mes "Não há equipamento equipado nesse slot.";  
+			close;  
+		}  
+	  
+		if (getequipcardcnt(.@part) == 0) {  
+			mes "[Gestão de Cartas]";
+			mes "Este equipamento não possui cartas inseridas.";  
+			close;  
+		}  
+	  
+		set .@cardcount, getequipcardcnt(.@part);  
+	  
+		if (!checkweight(1202, (.@cardcount + 1))) {  
+			mes "[Gestão de Cartas]";
+			mes "Seu inventário está muito cheio para receber as cartas removidas.";  
+			close;  
+		}  
+	  
+		next;  
+		successremovecards .@part;  
+		next;  
+		mes "[Gestão de Cartas]";
+		mes "As cartas foram removidas com sucesso do equipamento selecionado.";  
+		close;  
+
+	//----------------------------------------------------------------
+	// 3) Devolver cartas MVP em Runas de Troca
+	//----------------------------------------------------------------
+	case 3:
+		mes "[Gestão de Cartas]";
+		mes "Aqui você pode devolver cartas de MVP e recuperar suas ^0080FFRunas de Troca^000000.";
+		next;
+
+		switch (select(
+			"Encerrar",
+			"Devolver carta Bijou (10 Runas de Troca)",
+			"Devolver carta Cutie (1 Runa de Troca)",
+			"Devolver carta Cavaleiro Amaldiçoado Imortal (1 Runa de Troca)",
+			"Devolver carta Vento da Colina Imortal (1 Runa de Troca)",
+			"Devolver carta Beelzebub (5 Runas de Troca)",
+			"Devolver carta Tao Gunka (10 Runas de Troca)",
+			"Devolver carta Eremes (MVP) (10 Runas de Troca)",
+			"Devolver carta Maya Macho (10 Runas de Troca)",
+			"Devolver carta Kiel-D-01 (5 Runas de Troca)"
+		)) {
+
+		case 1:
+			close;
+
+		// Bijou -> 10 Runas
+		case 2:
+			if (countitem(4636) < 1) { mes "Você não possui ^FFCC00Carta Bijou^000000."; close; }
+			if (!checkweight(7831,10)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 4636,1;
+			getitem 7831,10;
+			break;
+
+		// Cutie -> 1 Runa
+		case 3:
+			if (countitem(27152) < 1) { mes "Você não possui ^FFCC00Carta Cutie^000000."; close; }
+			if (!checkweight(7831,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 27152,1;
+			getitem 7831,1;
+			break;
+
+		// Immortal Cursed Knight -> 1 Runa
+		case 4:
+			if (countitem(31024) < 1) { mes "Você não possui ^FFCC00Carta Cavaleiro Amaldiçoado Imortal^000000."; close; }
+			if (!checkweight(7831,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 31024,1;
+			getitem 7831,1;
+			break;
+
+		// Immortal Wind Ghost -> 1 Runa
+		case 5:
+			if (countitem(31025) < 1) { mes "Você não possui ^FFCC00Carta Vento da Colina Imortal^000000."; close; }
+			if (!checkweight(7831,1)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 31025,1;
+			getitem 7831,1;
+			break;
+
+		// Beelzebub -> 5 Runas
+		case 6:
+			if (countitem(4145) < 1) { mes "Você não possui ^FFCC00Carta Beelzebub^000000."; close; }
+			if (!checkweight(7831,5)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 4145,1;
+			getitem 7831,5;
+			break;
+
+		// Tao Gunka -> 10 Runas
+		case 7:
+			if (countitem(4302) < 1) { mes "Você não possui ^FFCC00Carta Tao Gunka^000000."; close; }
+			if (!checkweight(7831,10)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 4302,1;
+			getitem 7831,10;
+			break;
+
+		// Eremes MVP -> 10 Runas
+		case 8:
+			if (countitem(4359) < 1) { mes "Você não possui ^FFCC00Carta Eremes (MVP)^000000."; close; }
+			if (!checkweight(7831,10)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 4359,1;
+			getitem 7831,10;
+			break;
+
+		// Maya Macho -> 10 Runas
+		case 9:
+			if (countitem(4198) < 1) { mes "Você não possui ^FFCC00Carta Maya Macho^000000."; close; }
+			if (!checkweight(7831,10)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 4198,1;
+			getitem 7831,10;
+			break;
+
+		// Kiel -> 5 Runas
+		case 10:
+			if (countitem(4403) < 1) { mes "Você não possui ^FFCC00Carta Kiel-D-01^000000."; close; }
+			if (!checkweight(7831,5)) { mes "Você não possui espaço/peso suficiente."; close; }
+			delitem 4403,1;
+			getitem 7831,5;
+			break;
+		}
+
+		next;
+		mes "[Gestão de Cartas]";
+		mes "Processo de devolução concluído.";
+		close;
+
+	//----------------------------------------------------------------
+	// 4) Encerrar
+	//----------------------------------------------------------------
+	case 4:
+		mes "[Gestão de Cartas]";
+		mes "Caso precise novamente dos meus serviços, estarei à disposição.";
+		close;
+	}
+
+	end;
+
+
+//------------------------------------------------------------
+// Texto flutuante "Gestão de Cartas"
+//------------------------------------------------------------
+OnInit:
+	initnpctimer;
+	end;
+
+OnTimer1000:
+	showscript "[MVP] Gestão de Cartas";
+	setnpctimer 0;
+	end;
+}

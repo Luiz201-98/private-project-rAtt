@@ -3430,7 +3430,6 @@ Body:
     Icon: EFST_FEARBREEZE
     DurationLookup: RA_FEARBREEZE
     Flags:
-      NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
       RemoveOnUnequipWeapon: true
@@ -5784,7 +5783,6 @@ Body:
     DurationLookup: RA_UNLIMIT
     Flags:
       DisplayPc: true
-      NoDispell: true
       NoClearance: true
   - Status: Kings_Grace
     Icon: EFST_KINGS_GRACE
@@ -6146,9 +6144,23 @@ Body:
     Options:
       Invisible: true
     Flags:
+      SendLook: true
       UnitMove: true
       OnTouch: true
       StopAttacking: true
+    EndOnEnd:
+      Deluge: true
+      Volcano: true
+      Violentgale: true
+      Quagmire: true
+      Scresist: true
+      Gospel: true
+      Epiclesis: true
+      Fire_Insignia: true
+      Wind_Insignia: true
+      Water_Insignia: true
+      Earth_Insignia: true
+      Warmer: true  
   - Status: _Chaos
     Flags:
       StopWalking: true

@@ -1,6 +1,6 @@
-izlude,124,148,4	script	Classes	10387,{        
+turbo_room,99,120,4	script	Classes	10387,{        
     if( Class != 0 ){        
-         message strcharinfo(0),"Voc� ja escolheu sua classe!";         
+         message strcharinfo(0),"Você ja escolheu sua classe!";         
         end;        
     }        
     if (sex == 1) {        
@@ -22,12 +22,13 @@ changejob:
 	BaseLevel = .BaseLevel;        
 	JobLevel = .JobLevel;          
     resetstatus;      
-    SkillPoint = 186;  // D� 128 pontos de habilidade    
+    SkillPoint = 186;  // D? 128 pontos de habilidade    
     callsub GetPlatinumSkills;  // Usando callsub em vez de callfunc
-    callfunc "F_GetITEM"; 
+	// ENTREGA DE ITENS (SEM CONSUMÍVEIS)
+	callfunc "F_GetITEM_NoCons";
     end;        
       
-// Fun��o Platinum Skills embutida  
+// Fun??o Platinum Skills embutida  
 GetPlatinumSkills:  
 	skill "NV_FIRSTAID",1,SKILL_PERM;  
 	switch (BaseClass) {  
@@ -129,6 +130,11 @@ OnInit:
         .MenuF$ = .MenuF$ + jobname( .JobListF[.@i] )+":";        
 	}      
 	// Adiciona waiting room      
-	waitingroom "Mestra de Classes ROS!",0;      
-	end;        
+    
+	initnpctimer;    
+	end;    
+OnTimer1000:    
+	showscript "Mestra de Classe ROS!!";    
+	setnpctimer 0;    
+	end;          
 }

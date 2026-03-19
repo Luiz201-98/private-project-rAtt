@@ -1,0 +1,364 @@
+// ==============================================================================
+// Toy 7x7 BG - Motor principal (mapa 25ros03_01)
+// Inspirado em kvm58_BG, mas adaptado para 7x7 Toy Factory
+// ==============================================================================
+
+-	script	Toy7_BG	-1,{
+	end;
+
+OnInit:
+	// Garante que o mapa da arena seja tratado como Battleground,
+	// assim o cliente mostra o HUD (leão/coruja) quando o placar é atualizado.
+	setmapflag "25ros03_01", mf_battleground;
+	// Impede que jogadores usem "Retornar ao Ponto de Retorno" enquanto
+	// estiverem na arena (devem aguardar o fim do duelo).
+	setmapflag "25ros03_01", mf_noreturn;
+	end;
+
+// Chamado pelos registradores quando ambos os times estão prontos
+OnStartFromLobby:
+	// Aqui assumimos que os times BG ($@toy7BG_id1 e $@toy7BG_id2)
+	// já foram criados via waitingroom2bg pelos NPCs de waitingroom.
+	if ($@toy7BG_id1 == 0 || $@toy7BG_id2 == 0) {
+		announce "[Arena Toy Factory 7x7] Erro: times BG não encontrados.",bc_all,0xFF0000;
+		end;
+	}
+
+	// Define estado e inicia partida
+	set $@toy7BG, 1; // Starting
+	donpcevent "Toy7_BG::OnStart";
+	end;
+
+OnBlueQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+OnBlueDie:
+	if ($@toy7BG == 2) {
+		message strcharinfo(0), "[ARENA] Você foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+		if (.Blue_Count < 1)
+			donpcevent "Toy7_BG::OnRedWin";
+	}
+	end;
+
+OnRedQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+OnRedDie:
+	if ($@toy7BG == 2) {
+		message strcharinfo(0), "[ARENA] Você foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+		if (.Red_Count < 1)
+			donpcevent "Toy7_BG::OnBlueWin";
+	}
+	end;
+
+OnStart:
+	announce "[Arena Toy Factory 7x7] Dois times entraram na Arena Toy Factory (25ros03_01).",bc_yellow;
+	set $@toy7BG_Victory, 0;
+
+	// Warp já foi feito por bg_join, mas garantimos posição
+	bg_warp $@toy7BG_id1,"25ros03_01",46,80;
+	bg_warp $@toy7BG_id2,"25ros03_01",152,80;
+
+	// Paredes (mesmas que você usa hoje)
+	setwall "25ros03_01",60,81,1,4,0,"toy7_wall_a1";
+	setwall "25ros03_01",60,80,1,4,0,"toy7_wall_a2";
+	setwall "25ros03_01",60,79,1,4,0,"toy7_wall_a3";
+	setwall "25ros03_01",60,78,1,4,0,"toy7_wall_a4";
+
+	setwall "25ros03_01",139,78,1,4,0,"toy7_wall_v1";
+	setwall "25ros03_01",139,79,1,4,0,"toy7_wall_v2";
+	setwall "25ros03_01",139,80,1,4,0,"toy7_wall_v3";
+	setwall "25ros03_01",139,81,1,4,0,"toy7_wall_v4";
+
+	sleep 100;
+
+	// Conta membros iniciais
+	set .Blue_Count, bg_get_data($@toy7BG_id1, 0);
+	set .Red_Count,  bg_get_data($@toy7BG_id2, 0);
+
+	// Inicializa HUD com vivos
+	bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+
+	initnpctimer;
+	end;
+
+OnTimer1000:
+	mapannounce "25ros03_01","A batalha começará em 25 segundos!",bc_yellow;
+	end;
+
+OnTimer2000:
+	mapannounce "25ros03_01","A batalha começará em 24 segundos!",bc_yellow;
+	end;
+
+OnTimer3000:
+	mapannounce "25ros03_01","A batalha começará em 23 segundos!",bc_yellow;
+	end;
+
+OnTimer4000:
+	mapannounce "25ros03_01","A batalha começará em 22 segundos!",bc_yellow;
+	end;
+
+OnTimer5000:
+	mapannounce "25ros03_01","A batalha começará em 21 segundos!",bc_yellow;
+	end;
+
+OnTimer6000:
+	mapannounce "25ros03_01","A batalha começará em 20 segundos!",bc_yellow;
+	end;
+
+OnTimer7000:
+	mapannounce "25ros03_01","A batalha começará em 19 segundos!",bc_yellow;
+	end;
+
+OnTimer8000:
+	mapannounce "25ros03_01","A batalha começará em 18 segundos!",bc_yellow;
+	end;
+
+OnTimer9000:
+	mapannounce "25ros03_01","A batalha começará em 17 segundos!",bc_yellow;
+	end;
+
+OnTimer10000:
+	mapannounce "25ros03_01","A batalha começará em 16 segundos!",bc_yellow;
+	end;
+
+OnTimer11000:
+	mapannounce "25ros03_01","A batalha começará em 15 segundos!",bc_yellow;
+	end;
+
+OnTimer12000:
+	mapannounce "25ros03_01","A batalha começará em 14 segundos!",bc_yellow;
+	end;
+
+OnTimer13000:
+	mapannounce "25ros03_01","A batalha começará em 13 segundos!",bc_yellow;
+	end;
+
+OnTimer14000:
+	mapannounce "25ros03_01","A batalha começará em 12 segundos!",bc_yellow;
+	end;
+
+OnTimer15000:
+	mapannounce "25ros03_01","A batalha começará em 11 segundos!",bc_yellow;
+	end;
+
+OnTimer16000:
+	mapannounce "25ros03_01","A batalha começará em 10 segundos!",bc_yellow;
+	end;
+
+OnTimer17000:
+	mapannounce "25ros03_01","A batalha começará em 9 segundos!",bc_yellow;
+	end;
+
+OnTimer18000:
+	mapannounce "25ros03_01","A batalha começará em 8 segundos!",bc_yellow;
+	end;
+
+OnTimer19000:
+	mapannounce "25ros03_01","A batalha começará em 7 segundos!",bc_yellow;
+	end;
+
+OnTimer20000:
+	mapannounce "25ros03_01","A batalha começará em 6 segundos!",bc_yellow;
+	end;
+
+OnTimer21000:
+	mapannounce "25ros03_01","A batalha começará em 5 segundos!",bc_yellow;
+	end;
+
+OnTimer22000:
+	mapannounce "25ros03_01","A batalha começará em 4 segundos!",bc_yellow;
+	end;
+
+OnTimer23000:
+	mapannounce "25ros03_01","A batalha começará em 3 segundos!",bc_yellow;
+	end;
+
+OnTimer24000:
+	mapannounce "25ros03_01","A batalha começará em 2 segundos!",bc_yellow;
+	end;
+
+OnTimer24500:
+	mapannounce "25ros03_01","A batalha começará em 1 segundo!",bc_yellow;
+	end;
+
+OnTimer25000:
+	set $@toy7BG, 2; // Playing
+
+	// Remove paredes
+	delwall "toy7_wall_a1";
+	delwall "toy7_wall_a2";
+	delwall "toy7_wall_a3";
+	delwall "toy7_wall_a4";
+	delwall "toy7_wall_v1";
+	delwall "toy7_wall_v2";
+	delwall "toy7_wall_v3";
+	delwall "toy7_wall_v4";
+
+	mapannounce "25ros03_01","[Arena Toy Factory 7x7] A batalha começou! Boa sorte aos dois times!",bc_yellow;
+	end;
+
+// Tempo máximo de confronto: 6 minutos (360.000 ms)
+// Aviso 30 segundos antes do término
+OnTimer330000:
+	mapannounce "25ros03_01","[Arena Toy Factory 7x7] A batalha terminará em 30 segundos!",bc_yellow;
+	end;
+
+// Fim da batalha por tempo: decide pelo número de jogadores vivos
+OnTimer360000:
+	if (.Red_Count > .Blue_Count)
+		donpcevent "Toy7_BG::OnRedWin";
+	else if (.Red_Count < .Blue_Count)
+		donpcevent "Toy7_BG::OnBlueWin";
+	else {
+		// Empate
+		set $@toy7BG, 3;
+		set $@toy7BG_Victory, 3;
+		stopnpctimer;
+		sleep 2000;
+		announce "[Arena Toy Factory 7x7] As duas equipes empataram!",bc_yellow;
+		donpcevent "Toy7_BG::OnStop";
+	}
+	end;
+
+OnBlueWin:
+	set $@toy7BG, 3;
+	set $@toy7BG_Victory, 1;
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena Toy Factory 7x7] Time 1 venceu!",bc_all,0x00bfff;
+	sleep 3000;
+	donpcevent "Toy7_BG::OnStop";
+	end;
+
+OnRedWin:
+	set $@toy7BG, 3;
+	set $@toy7BG_Victory, 2;
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena Toy Factory 7x7] Time 2 venceu!",bc_all,0xff6347;
+	sleep 3000;
+	donpcevent "Toy7_BG::OnStop";
+	end;
+
+OnStop:
+	// Warp geral para turbo_room 100,100
+	mapwarp "25ros03_01","turbo_room",100,100;
+	donpcevent "Toy7_BG::OnReset";
+	end;
+
+OnReset:
+	stopnpctimer;
+	set .Blue_Count, 0;
+	set .Red_Count, 0;
+	set .Blue_Score, 0;
+	set .Red_Score, 0;
+	set $@toy7BG_Victory, 0;
+	set $@toy7_in_match, 0;
+	set $@toy7_blue_ready, 0;
+	set $@toy7_red_ready, 0;
+
+	if ($@toy7BG_id1) { bg_destroy $@toy7BG_id1; set $@toy7BG_id1, 0; }
+	if ($@toy7BG_id2) { bg_destroy $@toy7BG_id2; set $@toy7BG_id2, 0; }
+
+	// Limpa HUD e flags de registro
+	bg_updatescore "25ros03_01",0,0;
+	set $@toy7BG, 0;
+
+	set $toy7_team1_gid, 0;
+	set $toy7_team1_name$, "";
+	set $toy7_team1_party, 0;
+	set $toy7_team1_reg$, "";
+	set $toy7_team1_leader_aid, 0;
+
+	set $toy7_team2_gid, 0;
+	set $toy7_team2_name$, "";
+	set $toy7_team2_party, 0;
+	set $toy7_team2_reg$, "";
+	set $toy7_team2_leader_aid, 0;
+
+	// Pronto para próxima partida
+	end;
+}
+
+// ==============================================================================
+// Sistema de Waitingroom estilo KvM para Arena Toy Factory 7x7
+// - Cada lado tem sua waitingroom em turbo_room
+// - Quando ambas as waitingrooms estiverem cheias, os times BG são criados
+//   em 25ros03_01 e o motor Toy7_BG é iniciado.
+// ==============================================================================
+
+// Time Azul - Waitingroom em turbo_room (lado azul)
+turbo_room,135,97,5	script	Toy7 Azul::Toy7_WR_Blue	417,{
+	end;
+
+OnInit:
+	// 2 vagas para jogadores azul (1/3 na placa conta o NPC)
+	waitingroom "Arena Toy Factory - Azul",3,"Toy7_Wait_BG::OnBlueJoin",1;
+	end;
+
+// Criado pelo engine quando a sala estiver cheia
+OnEnterBG:
+	set $@toy7BG_id1, waitingroom2bg("25ros03_01",46,80,"Toy7_BG::OnBlueQuit","Toy7_BG::OnBlueDie");
+	end;
+}
+
+// Time Vermelho - Waitingroom em turbo_room (lado vermelho)
+turbo_room,64,97,5	script	Toy7 Vermelho::Toy7_WR_Red	414,{
+	end;
+
+OnInit:
+	// 2 vagas para jogadores vermelho (1/3 na placa conta o NPC)
+	waitingroom "Arena Toy Factory - Vermelho",3,"Toy7_Wait_BG::OnRedJoin",1;
+	end;
+
+// Criado pelo engine quando a sala estiver cheia
+OnEnterBG:
+	set $@toy7BG_id2, waitingroom2bg("25ros03_01",152,80,"Toy7_BG::OnRedQuit","Toy7_BG::OnRedDie");
+	end;
+}
+
+// Engine simples para verificar quando ambas as salas estão prontas
+-	script	Toy7_Wait_BG	-1,{
+	end;
+
+OnBlueJoin:
+OnRedJoin:
+	donpcevent "Toy7_Wait_BG::OnReadyCheck";
+	end;
+
+OnReadyCheck:
+	// Se já existe partida em preparação/andamento, não faz nada
+	if ($@toy7_in_match || $@toy7BG)
+		end;
+
+	// Conta quantos jogadores há em cada waitingroom.
+	// Visualmente a sala mostra 1/3, 2/3, 3/3, mas o que importa aqui
+	// é a quantidade REAL de players (sem contar o NPC).
+	set .@blue, getwaitingroomstate(0,"Toy7_WR_Blue");
+	set .@red,  getwaitingroomstate(0,"Toy7_WR_Red");
+
+	// Anúncio simples na sala turbo_room.
+	// Mostramos como se fosse 1/2, 2/2 para o jogador, mesmo
+	// que internamente o limite seja 3 (por causa do NPC).
+	mapannounce "turbo_room","[Arena Toy Factory 7x7] Azul: "+.@blue+"/2 | Vermelho: "+.@red+"/2",bc_blue;
+
+	// Só inicia quando ambas tiverem pelo menos 2 jogadores (ou seja, 2/3 na placa)
+	if ((.@blue < 2) || (.@red < 2))
+		end;
+
+	// Marca que há partida em preparação
+	set $@toy7_in_match, 1;
+
+	// Cria times via waitingroom2bg
+	donpcevent "Toy7_WR_Blue::OnEnterBG";
+	donpcevent "Toy7_WR_Red::OnEnterBG";
+
+	// Inicia o motor principal da Toy Factory
+	donpcevent "Toy7_BG::OnStartFromLobby";
+	end;
+}

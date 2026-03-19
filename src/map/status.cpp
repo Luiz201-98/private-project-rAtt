@@ -5686,6 +5686,13 @@ void status_calc_state( block_list& bl, status_change& sc, std::shared_ptr<s_sta
 					}
 					break;
 
+				case SC_CRYSTALIZE:
+					// Crystalize should prevent casting for players (and other non-MOB types).
+					if (bl.type != BL_MOB) {
+						restriction = true;
+					}
+					break;
+
 				default:
 					return false;
 			}
@@ -8211,22 +8218,24 @@ static uint16 status_calc_speed(struct block_list *bl, status_change *sc, int32 
 			speed_rate = 40;
 	}
 
-	// GetSpeed()
-	if( sd && pc_iscarton(sd) )
-		speed += speed * (50 - 5 * pc_checkskill(sd,MC_PUSHCART)) / 100;
-	if( sc->getSCE(SC_PARALYSE) && sc->getSCE(SC_PARALYSE)->val3 == 1 )
-		speed += speed * 50 / 100;
-	if( speed_rate != 100 )
-		speed = speed * speed_rate / 100;
-	if( sc->getSCE(SC_STEELBODY) )
-		speed = 200;
-	if( sc->getSCE(SC_DEFENDER) )
+	// GetSpeed()  
+	if( sd && pc_iscarton(sd) )  
+		speed += speed * (50 - 5 * pc_checkskill(sd,MC_PUSHCART)) / 100;  
+	if( sc->getSCE(SC_PARALYSE) && sc->getSCE(SC_PARALYSE)->val3 == 1 )  
+		speed += speed * 50 / 100;  
+	if( speed_rate != 100 )  
+		speed = speed * speed_rate / 100;  
+	if( sc->getSCE(SC_STEELBODY) )  
+		speed = 200;  
+	// Defender slows movement even when its val4 is 0 (e.g. skill level 5),
+	// so we only skip slow for Devotion targets.
+	if (sc->getSCE(SC_DEFENDER) && !sc->getSCE(SC_DEVOTION))
 		speed = max(speed, 200);
-	if (sc->getSCE(SC_ARMOR))
-		speed = max(speed, 200);
-	if( sc->getSCE(SC_WALKSPEED) && sc->getSCE(SC_WALKSPEED)->val1 > 0 ) // ChangeSpeed
-		speed = speed * 100 / sc->getSCE(SC_WALKSPEED)->val1;
-
+	if (sc->getSCE(SC_ARMOR))  
+		speed = max(speed, 200);  
+	if( sc->getSCE(SC_WALKSPEED) && sc->getSCE(SC_WALKSPEED)->val1 > 0 ) // ChangeSpeed  
+		speed = speed * 100 / sc->getSCE(SC_WALKSPEED)->val1;  
+	
 	return (uint16)cap_value(speed, MIN_WALK_SPEED, MAX_WALK_SPEED);
 }
 
@@ -8496,7 +8505,7 @@ static int16 status_calc_aspd_rate(struct block_list *bl, status_change *sc, int
 #endif
 	if(sc->getSCE(SC_STEELBODY))
 		aspd_rate += 250;
-	if(sc->getSCE(SC_DEFENDER))
+	if(sc->getSCE(SC_DEFENDER) && !sc->getSCE(SC_DEVOTION))
 		aspd_rate += sc->getSCE(SC_DEFENDER)->val4;
 	if(sc->getSCE(SC_GOSPEL) && sc->getSCE(SC_GOSPEL)->val4 == BCT_ENEMY)
 		aspd_rate += 250;
@@ -11308,7 +11317,8 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					int32 i;
 					for (i = 0; i < MAX_DEVOTION; i++) { // See if there are devoted characters, and pass the status to them. [Skotlex]
 						if (sd->devotion[i] && (tsd = map_id2sd(sd->devotion[i])))
-							status_change_start(src,tsd,type,10000,val1,val2,val3,val4,tick,SCSTART_NOAVOID);
+							// Devotion targets keep Defender's damage reduction (val2), but we remove the slow/ASPD penalty.
+							status_change_start(src,tsd,type,10000,val1,val2,val3,0,tick,SCSTART_NOAVOID);
 					}
 				}
 			}

@@ -1,0 +1,343 @@
+// ==============================================================================
+// Registro 7x7 - Dois NPCs: Time 1 e Time 2
+// Waiting room com 0 slots = apenas sinalizador (texto acima do NPC).
+// Registro ao FALAR com o NPC: party, guild, lider, X membros online.
+// Quando os 2 times estiverem registrados -> teleportar lideres para gon_test.
+// ==============================================================================
+// Requeridos: .@membros_min = 2 (altere para 7 para 7x7 de verdade)
+
+turbo_room,106,117,5	script	Time 1 7x7::WR_Azul	733,{
+	// Se já existe um duelo em andamento, bloqueia novos registros
+	if ($7x7_in_match) {
+		mes "[ ^0055FFTime 1 7x7^000000 ]";
+		mes "Já existe um confronto em andamento.";
+		mes "Aguarde o término para registrar sua guild novamente.";
+		close;
+	}
+
+	// Waiting room 0 slots = so sinalizador, ninguem entra
+	mes "[ ^0055FFTime 1 7x7^000000 ]";
+	mes "Voce precisa de ^0055FF2 membros^000000 na guild e na party.";
+	next;
+
+	if (!getcharid(1)) {
+		mes "[ ^0055FFTime 1 7x7^000000 ]";
+		mes "Voce precisa estar em uma ^0055FFparty^000000.";
+		close;
+	}
+	if (!getcharid(2)) {
+		mes "[ ^0055FFTime 1 7x7^000000 ]";
+		mes "Voce precisa estar em uma ^0055FFguild^000000.";
+		close;
+	}
+
+	set .@guild_id, getcharid(2);
+	// Apenas lider da GUILD pode registrar
+	if (getguildmasterid(.@guild_id) != getcharid(0)) {
+		mes "[ ^0055FFTime 1 7x7^000000 ]";
+		mes "Apenas o lider da guild pode registrar.";
+		close;
+	}
+
+	set .@party_id, getcharid(1);
+	getpartymember .@party_id, 1;
+	getpartymember .@party_id, 2;
+	set .@partymembercount, $@partymembercount;
+	set .@membros_min, 2;
+	set .@online_count, 0;
+	for (set .@i, 0; .@i < .@partymembercount; set .@i, .@i + 1) {
+		if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i]))
+			set .@online_count, .@online_count + 1;
+	}
+	if (.@online_count < .@membros_min) {
+		mes "[ ^0055FFTime 1 7x7^000000 ]";
+		mes "Voce precisa de ^0055FF" + .@membros_min + "^000000 pessoas online na party.";
+		close;
+	}
+
+	// Sua guild ja esta no azul?
+	if ($7x7_blue_gid == .@guild_id) {
+		mes "[ ^0055FFTime Azul 7x7^000000 ]";
+		mes "Sua guild ja esta registrada no Time Azul.";
+		next;
+		switch(select("Ver fila e jogadores", "Remover meu registro", "Sair")) {
+			case 1: callsub L_VerFila;
+			case 2: callsub L_RemoverAzul;
+			default: close;
+		}
+		close;
+	}
+	// Ja registrada no vermelho?
+	if ($7x7_red_gid == .@guild_id) {
+		mes "[ ^0055FFTime Azul 7x7^000000 ]";
+		mes "Sua guild ja esta no Time Vermelho. Registre no NPC do Time Vermelho.";
+		close;
+	}
+	// Azul ja ocupado por outra guild
+	if ($7x7_blue_gid) {
+		mes "[ ^0055FFTime Azul 7x7^000000 ]";
+		mes "Time Azul ja reservado pela Guild ^0055FF" + $7x7_blue_gname$ + "^000000.";
+		mes "Registre sua guild no ^FF0000Time Vermelho^000000 (NPC ao lado).";
+		close;
+	}
+
+	mes "[ ^0055FFTime 1 7x7^000000 ]";
+	mes "Registrar a guild ^0055FF" + getguildname(.@guild_id) + "^000000 no Time 1?";
+	next;
+	if (select("Sim, registrar", "Nao") == 2) close;
+
+	set $7x7_blue_gid, .@guild_id;
+	set $7x7_blue_gname$, getguildname(.@guild_id);
+	set $7x7_blue_party_id, .@party_id;
+	set $7x7_blue_registro$, gettimestr("%d/%m/%Y %H:%M", 16);
+	// salva AID do lider
+	set $7x7_blue_leader_aid, getcharid(3);
+
+	// Os dois times ja estao preenchidos?
+	if ($7x7_red_party_id) {
+		set .@blue_name$, $7x7_blue_gname$;
+		set .@red_name$,  $7x7_red_gname$;
+		set .@blue_aid,   $7x7_blue_leader_aid;
+		set .@red_aid,    $7x7_red_leader_aid;
+
+		// Marca que há um duelo em andamento
+		set $7x7_in_match, 1;
+
+		// Teleporta só os líderes para gon_test 55,94
+		// e marca o lado (Azul/Vermelho) em variável de conta #7x7_side
+		if (attachrid(.@blue_aid)) {
+			set #7x7_side, 1; // Azul
+			warp "gon_test",55,94;
+			detachrid;
+		}
+		if (attachrid(.@red_aid)) {
+			set #7x7_side, 2; // Vermelho
+			warp "gon_test",55,94;
+			detachrid;
+		}
+
+		announce "O Confronto entre [" + .@blue_name$ + "] VS [" + .@red_name$ + "] Foi Agendado!!", 0, 0xFFA500;
+		announce "Os L�deres est�o decidindo o mapa, aguarde!", 0, 0xFFFF00;
+		end;
+	}
+
+	mes "[ ^0055FFTime 1 7x7^000000 ]";
+	mes "Time 1 reservado para ^0055FF" + getguildname(.@guild_id) + "^000000.";
+	mes "Aguarde uma guild registrar no Time 2.";
+	close;
+
+L_RemoverAzul:
+	set $7x7_blue_gid, 0;
+	set $7x7_blue_gname$, "";
+	set $7x7_blue_party_id, 0;
+	set $7x7_blue_registro$, "";
+	set $7x7_blue_leader_aid, 0;
+	mes "[ ^0055FFTime 1 7x7^000000 ]";
+	mes "Registro do Time 1 removido.";
+	return;
+
+L_VerFila:
+mes "[ ^0055FFFila 7x7 (Time 1/2)^000000 ]";
+mes "Time 1: " + (($7x7_blue_gid) ? $7x7_blue_gname$ + " (" + $7x7_blue_registro$ + ")" : "(vago)");
+mes "Time 2: " + (($7x7_red_gid) ? $7x7_red_gname$ + " (" + $7x7_red_registro$ + ")" : "(vago)");
+	next;
+	if ($7x7_blue_party_id) {
+		getpartymember $7x7_blue_party_id, 0;
+		.@n = $@partymembercount;
+		copyarray .@nomes$[0], $@partymembername$[0], .@n;
+		.@lista$ = "";
+		for (set .@i, 0; .@i < .@n; set .@i, .@i + 1) {
+			if (.@i > 0) set .@lista$, .@lista$ + ", ";
+			set .@lista$, .@lista$ + .@nomes$[.@i];
+		}
+		mes "Time 1 - " + $7x7_blue_gname$ + ":";
+		mes .@lista$;
+	} else mes "Time Azul: (nenhum)";
+	next;
+	if ($7x7_red_party_id) {
+		getpartymember $7x7_red_party_id, 0;
+		.@n = $@partymembercount;
+		copyarray .@nomes$[0], $@partymembername$[0], .@n;
+		.@lista$ = "";
+		for (set .@i, 0; .@i < .@n; set .@i, .@i + 1) {
+			if (.@i > 0) set .@lista$, .@lista$ + ", ";
+			set .@lista$, .@lista$ + .@nomes$[.@i];
+		}
+	mes "Time 2 - " + $7x7_red_gname$ + ":";
+		mes .@lista$;
+	} else mes "Time Vermelho: (nenhum)";
+	return;
+
+OnInit:
+	waitingroom "Time 1 - 7x7", 0;
+	end;
+}
+
+// ------------------------------------------------------------------------------
+turbo_room,93,117,5	script	Time 2 7x7::WR_Vermelho	734,{
+	// Se já existe um duelo em andamento, bloqueia novos registros
+	if ($7x7_in_match) {
+		mes "[ ^FF0000Time 2 7x7^000000 ]";
+		mes "Já existe um confronto em andamento.";
+		mes "Aguarde o término para registrar sua guild novamente.";
+		close;
+	}
+
+mes "[ ^FF0000Time 2 7x7^000000 ]";
+	mes "Voce precisa de ^FF00002 membros^000000 na guild e na party.";
+	next;
+
+	if (!getcharid(1)) {
+		mes "[ ^FF0000Time 2 7x7^000000 ]";
+		mes "Voce precisa estar em uma ^FF0000party^000000.";
+		close;
+	}
+	if (!getcharid(2)) {
+		mes "[ ^FF0000Time 2 7x7^000000 ]";
+		mes "Voce precisa estar em uma ^FF0000guild^000000.";
+		close;
+	}
+
+	set .@guild_id, getcharid(2);
+	// Apenas lider da guild pode registrar
+	if (getguildmasterid(.@guild_id) != getcharid(0)) {
+		mes "[ ^FF0000Time 2 7x7^000000 ]";
+		mes "Apenas o lider da guild pode registrar.";
+		close;
+	}
+
+	set .@party_id, getcharid(1);
+	getpartymember .@party_id, 1;
+	getpartymember .@party_id, 2;
+	set .@partymembercount, $@partymembercount;
+	set .@membros_min, 2;
+	set .@online_count, 0;
+	for (set .@i, 0; .@i < .@partymembercount; set .@i, .@i + 1) {
+		if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i]))
+			set .@online_count, .@online_count + 1;
+	}
+	if (.@online_count < .@membros_min) {
+		mes "[ ^FF0000Time 2 7x7^000000 ]";
+		mes "Voce precisa de ^FF0000" + .@membros_min + "^000000 pessoas online na party.";
+		close;
+	}
+
+	if ($7x7_red_gid == .@guild_id) {
+		mes "[ ^FF0000Time Vermelho 7x7^000000 ]";
+		mes "Sua guild ja esta registrada no Time Vermelho.";
+		next;
+		switch(select("Ver fila e jogadores", "Remover meu registro", "Sair")) {
+			case 1: callsub L_VerFila;
+			case 2: callsub L_RemoverVermelho;
+			default: close;
+		}
+		close;
+	}
+	if ($7x7_blue_gid == .@guild_id) {
+		mes "[ ^FF0000Time Vermelho 7x7^000000 ]";
+		mes "Sua guild ja esta no Time Azul. Registre no NPC do Time Azul.";
+		close;
+	}
+	if ($7x7_red_gid) {
+		mes "[ ^FF0000Time Vermelho 7x7^000000 ]";
+		mes "Time Vermelho ja reservado pela Guild ^FF0000" + $7x7_red_gname$ + "^000000.";
+		mes "Registre sua guild no ^0055FFTime Azul^000000 (NPC ao lado).";
+		close;
+	}
+
+mes "[ ^FF0000Time 2 7x7^000000 ]";
+mes "Registrar a guild ^FF0000" + getguildname(.@guild_id) + "^000000 no Time 2?";
+	next;
+	if (select("Sim, registrar", "Nao") == 2) close;
+
+	set $7x7_red_gid, .@guild_id;
+	set $7x7_red_gname$, getguildname(.@guild_id);
+	set $7x7_red_party_id, .@party_id;
+	set $7x7_red_registro$, gettimestr("%d/%m/%Y %H:%M", 16);
+	// salva AID do lider
+	set $7x7_red_leader_aid, getcharid(3);
+
+	if ($7x7_blue_party_id) {
+		set .@blue_name$, $7x7_blue_gname$;
+		set .@red_name$,  $7x7_red_gname$;
+		set .@blue_aid,   $7x7_blue_leader_aid;
+		set .@red_aid,    $7x7_red_leader_aid;
+
+		set $7x7_blue_gid, 0;
+		set $7x7_blue_gname$, "";
+		set $7x7_blue_party_id, 0;
+		set $7x7_blue_registro$, "";
+		set $7x7_blue_leader_aid, 0;
+
+		set $7x7_red_gid, 0;
+		set $7x7_red_gname$, "";
+		set $7x7_red_party_id, 0;
+		set $7x7_red_registro$, "";
+		set $7x7_red_leader_aid, 0;
+
+		// Teleporta so os lideres para gon_test 57,91
+		if (attachrid(.@blue_aid)) {
+			warp "gon_test",57,91;
+			detachrid;
+		}
+		if (attachrid(.@red_aid)) {
+			warp "gon_test",57,91;
+			detachrid;
+		}
+
+		announce "O Confronto entre [" + .@blue_name$ + "] VS [" + .@red_name$ + "] Foi Agendado!!", 0, 0xFFA500;
+		announce "Os L�deres est�o decidindo o mapa, aguarde!", 0, 0xFFFF00;
+		end;
+	}
+
+mes "[ ^FF0000Time 2 7x7^000000 ]";
+mes "Time 2 reservado para ^FF0000" + getguildname(.@guild_id) + "^000000.";
+mes "Aguarde uma guild registrar no Time 1.";
+	close;
+
+L_RemoverVermelho:
+	set $7x7_red_gid, 0;
+	set $7x7_red_gname$, "";
+	set $7x7_red_party_id, 0;
+	set $7x7_red_registro$, "";
+	set $7x7_red_leader_aid, 0;
+mes "[ ^FF0000Time 2 7x7^000000 ]";
+mes "Registro do Time 2 removido.";
+	return;
+
+L_VerFila:
+mes "[ ^FF0000Fila 7x7 (Time 1/2)^000000 ]";
+mes "Time 1: " + (($7x7_blue_gid) ? $7x7_blue_gname$ + " (" + $7x7_blue_registro$ + ")" : "(vago)");
+mes "Time 2: " + (($7x7_red_gid) ? $7x7_red_gname$ + " (" + $7x7_red_registro$ + ")" : "(vago)");
+	next;
+	if ($7x7_blue_party_id) {
+		getpartymember $7x7_blue_party_id, 0;
+		.@n = $@partymembercount;
+		copyarray .@nomes$[0], $@partymembername$[0], .@n;
+		.@lista$ = "";
+		for (set .@i, 0; .@i < .@n; set .@i, .@i + 1) {
+			if (.@i > 0) set .@lista$, .@lista$ + ", ";
+			set .@lista$, .@lista$ + .@nomes$[.@i];
+		}
+mes "Time 1 - " + $7x7_blue_gname$ + ":";
+		mes .@lista$;
+	} else mes "Time Azul: (nenhum)";
+	next;
+	if ($7x7_red_party_id) {
+		getpartymember $7x7_red_party_id, 0;
+		.@n = $@partymembercount;
+		copyarray .@nomes$[0], $@partymembername$[0], .@n;
+		.@lista$ = "";
+		for (set .@i, 0; .@i < .@n; set .@i, .@i + 1) {
+			if (.@i > 0) set .@lista$, .@lista$ + ", ";
+			set .@lista$, .@lista$ + .@nomes$[.@i];
+		}
+mes "Time 2 - " + $7x7_red_gname$ + ":";
+		mes .@lista$;
+	} else mes "Time Vermelho: (nenhum)";
+	return;
+
+OnInit:
+	waitingroom "Time 2 - 7x7", 0;
+	end;
+}

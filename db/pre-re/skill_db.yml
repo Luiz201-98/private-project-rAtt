@@ -21970,7 +21970,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 1000
+    AfterCastActDelay: 0
     Duration1:
       - Level: 1
         Time: 10000
@@ -22003,7 +22003,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 1000
+    AfterCastActDelay: 0
     Duration1:
       - Level: 1
         Time: 10000
@@ -22036,7 +22036,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 1000
+    AfterCastActDelay: 0
     Duration1:
       - Level: 1
         Time: 10000
@@ -22069,7 +22069,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 1000
+    AfterCastActDelay: 0
     Duration1:
       - Level: 1
         Time: 10000

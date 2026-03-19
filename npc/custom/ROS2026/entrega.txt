@@ -1,0 +1,134 @@
+turbo_room,109,110,4	script	Maquina de Restoque	564,{
+
+	// variáveis permanentes por personagem:
+	// StuffsSaved = 0/1, Stuffs_id[], Stuffs_amt[]
+
+	mes "[Maquina de Restoque]";
+	if (StuffsSaved) {
+		mes "Você já tem uma lista de stuffs salva.";
+		next;
+
+		// Jogador JÁ tem lista salva
+		// 1 - Sobrescrever com itens atuais
+		// 2 - Apagar lista salva
+		// 3 - Resetar Zenys para 20.000.000
+		// 4 - Cancelar
+		.@opt = select(
+			"Sobrescrever lista salva com os itens atuais",
+			"Apagar lista salva",
+			"Resetar Zenys para 20.000.000",
+			"Cancelar"
+		);
+
+		// 1) Sobrescrever
+		if (.@opt == 1) {
+			mes "[Maquina de Restoque]";
+			mes "Isso vai apagar a lista de stuffs salva e gravar a lista atual do seu inventário.";
+			next;
+			if (select("Apagar e salvar de novo:Cancelar") == 2) close;
+			goto L_SaveCurrent;
+		}
+
+		// 2) Apagar lista salva
+		if (.@opt == 2) {
+			mes "[Maquina de Restoque]";
+			mes "Isso vai apagar definitivamente a lista de stuffs salva.";
+			next;
+			if (select("Apagar:Cancelar") == 2) close;
+
+			deletearray Stuffs_id[0], getarraysize(Stuffs_id);
+			deletearray Stuffs_amt[0], getarraysize(Stuffs_amt);
+			StuffsSaved = 0;
+
+			mes "[Maquina de Restoque]";
+			mes "Lista de stuffs salva apagada.";
+			close;
+		}
+
+		// 3) Resetar Zenys (instantâneo, sem diálogo)
+		if (.@opt == 3) {
+			goto L_ResetZeny;
+		}
+
+		// 4) Cancelar
+		close;
+
+	} else {
+		mes "Você ainda não tem uma lista de stuffs salva.";
+		next;
+
+		// Jogador NÃO tem lista salva
+		// 1 - Salvar stuffs atuais
+		// 2 - Resetar Zenys
+		// 3 - Cancelar
+		.@opt = select(
+			"Salvar meus stuffs atuais",
+			"Resetar Zenys para 20.000.000",
+			"Cancelar"
+		);
+
+		if (.@opt == 1) {
+			goto L_SaveCurrent;
+		}
+		if (.@opt == 2) {
+			goto L_ResetZeny;
+		}
+
+		close;
+	}
+
+	//---------------------------------
+	// Rotina de salvar itens atuais
+	//---------------------------------
+L_SaveCurrent:
+
+	getinventorylist;
+
+	if (getarraysize(@inventorylist_id) == 0) {
+		mes "[Maquina de Restoque]";
+		mes "Seu inventário está vazio. Nada para salvar.";
+		close;
+	}
+
+	mes "[Maquina de Restoque]";
+	mes "Esta é a lista de itens (apenas não-equipados) que será salva:";
+	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
+		if (@inventorylist_equip[.@i]) continue; // ignora equipados
+		mes "- ID "+@inventorylist_id[.@i]+"  qtd: "+@inventorylist_amount[.@i];
+	}
+	next;
+
+	if (select("Salvar lista:Cancelar") == 2) close;
+
+	// limpa lista anterior
+	deletearray Stuffs_id[0], getarraysize(Stuffs_id);
+	deletearray Stuffs_amt[0], getarraysize(Stuffs_amt);
+
+	// copia itens não-equipados para variáveis permanentes
+	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
+		if (@inventorylist_equip[.@i]) continue; // só inventário
+		.@idx = getarraysize(Stuffs_id);
+		Stuffs_id[.@idx]  = @inventorylist_id[.@i];
+		Stuffs_amt[.@idx] = @inventorylist_amount[.@i];
+	}
+
+	StuffsSaved = 1;
+
+	mes "[Maquina de Restoque]";
+	mes "Sua lista de stuffs foi salva com sucesso.";
+	close;
+
+
+	//---------------------------------
+	// Rotina de reset de Zeny (instantâneo)
+	//---------------------------------
+L_ResetZeny:
+
+	.@limit = 20000000; // 20kk
+
+	if (Zeny < .@limit)
+		Zeny = .@limit;
+
+	// sem diálogos, fecha direto
+	close;
+}
