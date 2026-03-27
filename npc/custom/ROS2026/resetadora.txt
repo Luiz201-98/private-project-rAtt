@@ -1,10 +1,11 @@
-turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{  
+turbo_room,90,110,5	script	Gerenciadora de Builds	10125,{
 	// ==============================    
 	// SISTEMA DE GERENCIADOR DE BUILDS    
 	// ==============================    
 	.MaxSlots = 5;  // Define 5 slots para builds  
 	function ManageBuild;    
-	mes "Selecione o que deseja fazer.";    
+	mes "[Gerenciadora de Builds]";
+	mes "Selecione a operacao que deseja executar.";
 	next;    
 	switch(select("^FF0000Salvar/Alternar Builds^000000:^0000FFRedefinir Status^000000:^0000FFRedefinir Habilidades^000000")) {    
 		case 1:    
@@ -13,7 +14,8 @@ turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{
 			set .@Slot, select(.@Menu$);    
 			do {    
 				next;    
-				mes "Build: " + ((getd("Slot_"+.@Slot+"$") == "") ? "Slot " + .@Slot : getd("Slot_"+.@Slot+"$"));    
+				mes "[Gerenciadora de Builds]";
+				mes "Build selecionada: " + ((getd("Slot_"+.@Slot+"$") == "") ? "Slot " + .@Slot : getd("Slot_"+.@Slot+"$"));    
 				mes "STR: "+getd("STR_"+.@Slot)+"  INT: "+getd("INT_"+.@Slot);    
 				mes "AGI: "+getd("AGI_"+.@Slot)+"  DEX: "+getd("DEX_"+.@Slot);    
 				mes "VIT: "+getd("VIT_"+.@Slot)+"  LUK: "+getd("LUK_"+.@Slot);    
@@ -24,11 +26,13 @@ turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{
 			break;    
 		case 2:    
 			ResetStatus;    
-			mes "Atributos redefinidos.";    
+			mes "[Gerenciadora de Builds]";
+			mes "Os atributos foram redefinidos com sucesso.";    
 			break;    
 		case 3:    
 			ResetSkill;    
-			mes "Habilidades redefinidas.";    
+			mes "[Gerenciadora de Builds]";
+			mes "As habilidades foram redefinidas com sucesso.";    
 			break;    
 	}    
 	close;    
@@ -39,14 +43,15 @@ turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{
 				// Check if this is a save operation (empty slot) or switch operation    
 				if (getd("Slot_"+getarg(0)+"$") == "") {    
 					// This is a save operation - prompt for name first    
-					mes "[Gerente de Builds]";    
-					mes "Digite um nome para esta build:";    
-					next;  // Adicionado para corrigir tela branca  
+					mes "[Gerenciadora de Builds]";    
+					mes "Informe um nome para esta build:";    
+					next;  
 					input .@name$;    
-					if (.@name$ == "") {    
-						mes "Nome inválido. Operação cancelada.";    
-						return;    
-					}    
+					if (.@name$ == "") {
+						mes "[Gerenciadora de Builds]";
+						mes "Nome invalido. Operacao cancelada.";
+						return;
+					}
 					// Save the name    
 					setd "Slot_"+getarg(0)+"$", .@name$;    
 					// Save current stats    
@@ -57,10 +62,10 @@ turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{
 					setd("DEX_"+getarg(0)), readparam(bDex);    
 					setd("LUK_"+getarg(0)), readparam(bLuk);    
 					setd("STATS_"+getarg(0)), StatusPoint;    
-					message strcharinfo(0),"Build '"+.@name$+"' salva com sucesso!";    
+					message strcharinfo(0),"Build '"+.@name$+"' salva com sucesso.";    
 				} else {    
 					// This is a switch operation    
-					message strcharinfo(0),"Build alternada.";    
+					message strcharinfo(0),"Build aplicada com sucesso.";    
 					ResetStatus;    
 					set StatusPoint, getd("STATS_"+getarg(0));    
 					statusup2 bStr, getd("STR_"+getarg(0)) - 1;    
@@ -72,7 +77,7 @@ turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{
 				}    
 				break;    
 			case 2:    
-				message strcharinfo(0),"Build apagada.";    
+				message strcharinfo(0),"Build removida com sucesso.";    
 				setd("STR_"+getarg(0)),0;    
 				setd("AGI_"+getarg(0)),0;    
 				setd("VIT_"+getarg(0)),0;    
@@ -85,4 +90,12 @@ turbo_room,90,110,4	script	Gerenciadora de Builds	10125,{
 		}    
 		return;    
 	}  
-}
+
+OnInit:
+	initnpctimer;
+	end;
+OnTimer1000:
+	showscript "Gerencia de Builds";
+	setnpctimer 0;
+	end;
+}  

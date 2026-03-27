@@ -1,0 +1,112 @@
+// ==============================================================================
+// Arena 2025 - Controlador externo das paredes invisiveis
+// ==============================================================================
+
+prontera,150,180,4	script	Arena2025 Wall Control::Arena2025_Wall_Controller	4_F_KAFRA1,{
+	if (.mode_name$ == "") {
+		set .mode, 5;
+		set .mode_name$, "Todas";
+	}
+	mes "[Arena2025 Wall Controller]";
+	mes "Modo atual de paredes: ^00AAFF"+.mode_name$+"^000000";
+	next;
+	switch(select("Sem paredes (seguro):Blue bloco 1 (a1-a4):Blue bloco 2 (a5-a8):Red bloco 1 (v1-v4):Red bloco 2 (v5-v8):Todas paredes:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1:
+			set .mode, 0;
+			set .mode_name$, "Sem paredes";
+			break;
+		case 2:
+			set .mode, 1;
+			set .mode_name$, "Blue bloco 1";
+			break;
+		case 3:
+			set .mode, 2;
+			set .mode_name$, "Blue bloco 2";
+			break;
+		case 4:
+			set .mode, 3;
+			set .mode_name$, "Red bloco 1";
+			break;
+		case 5:
+			set .mode, 4;
+			set .mode_name$, "Red bloco 2";
+			break;
+		case 6:
+			set .mode, 5;
+			set .mode_name$, "Todas";
+			break;
+		case 7:
+			donpcevent "Arena2025_Wall_Controller::OnCloseWalls";
+			mes "[Arena2025 Wall Controller]";
+			mes "Paredes aplicadas agora com modo: ^00AAFF"+.mode_name$+"^000000";
+			close;
+		case 8:
+			donpcevent "Arena2025_Wall_Controller::OnOpenWalls";
+			mes "[Arena2025 Wall Controller]";
+			mes "Paredes abertas agora.";
+			close;
+	}
+	mes "[Arena2025 Wall Controller]";
+	mes "Novo modo: ^00AAFF"+.mode_name$+"^000000";
+	close;
+
+OnInit:
+	set .mode, 5;
+	set .mode_name$, "Todas";
+	// Inicia com paredes abertas para evitar travar login/reload no mapa.
+	donpcevent "Arena2025_Wall_Controller::OnOpenWalls";
+	end;
+
+OnCloseWalls:
+	donpcevent "Arena2025_Wall_Controller::OnOpenWalls";
+	if (.mode == 0) end;
+
+	// Blue bloco 1
+	if (.mode == 1 || .mode == 5) {
+		setcell "2025arena1",221,159,221,159,CELL_WALKABLE,0;
+		setcell "2025arena1",221,158,221,158,CELL_WALKABLE,0;
+		setcell "2025arena1",221,157,221,157,CELL_WALKABLE,0;
+		setcell "2025arena1",221,156,221,156,CELL_WALKABLE,0;
+	}
+	// Blue bloco 2
+	if (.mode == 2 || .mode == 5) {
+		setcell "2025arena1",221,155,221,155,CELL_WALKABLE,0;
+		setcell "2025arena1",221,154,221,154,CELL_WALKABLE,0;
+		setcell "2025arena1",221,153,221,153,CELL_WALKABLE,0;
+		setcell "2025arena1",221,152,221,152,CELL_WALKABLE,0;
+	}
+	// Red bloco 1
+	if (.mode == 3 || .mode == 5) {
+		setcell "2025arena1",134,159,134,159,CELL_WALKABLE,0;
+		setcell "2025arena1",134,158,134,158,CELL_WALKABLE,0;
+		setcell "2025arena1",134,157,134,157,CELL_WALKABLE,0;
+		setcell "2025arena1",134,156,134,156,CELL_WALKABLE,0;
+	}
+	// Red bloco 2
+	if (.mode == 4 || .mode == 5) {
+		setcell "2025arena1",134,155,134,155,CELL_WALKABLE,0;
+		setcell "2025arena1",134,154,134,154,CELL_WALKABLE,0;
+		setcell "2025arena1",134,153,134,153,CELL_WALKABLE,0;
+		setcell "2025arena1",134,152,134,152,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpenWalls:
+	setcell "2025arena1",221,159,221,159,CELL_WALKABLE,1;
+	setcell "2025arena1",221,158,221,158,CELL_WALKABLE,1;
+	setcell "2025arena1",221,157,221,157,CELL_WALKABLE,1;
+	setcell "2025arena1",221,156,221,156,CELL_WALKABLE,1;
+	setcell "2025arena1",221,155,221,155,CELL_WALKABLE,1;
+	setcell "2025arena1",221,154,221,154,CELL_WALKABLE,1;
+	setcell "2025arena1",221,153,221,153,CELL_WALKABLE,1;
+	setcell "2025arena1",221,152,221,152,CELL_WALKABLE,1;
+	setcell "2025arena1",134,159,134,159,CELL_WALKABLE,1;
+	setcell "2025arena1",134,158,134,158,CELL_WALKABLE,1;
+	setcell "2025arena1",134,157,134,157,CELL_WALKABLE,1;
+	setcell "2025arena1",134,156,134,156,CELL_WALKABLE,1;
+	setcell "2025arena1",134,155,134,155,CELL_WALKABLE,1;
+	setcell "2025arena1",134,154,134,154,CELL_WALKABLE,1;
+	setcell "2025arena1",134,153,134,153,CELL_WALKABLE,1;
+	setcell "2025arena1",134,152,134,152,CELL_WALKABLE,1;
+	end;
+}

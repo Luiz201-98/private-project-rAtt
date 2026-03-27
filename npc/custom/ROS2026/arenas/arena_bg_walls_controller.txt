@@ -1,0 +1,396 @@
+// ==============================================================================
+// Arena BG - Controlador unico de barreiras (setcell) para multiplos mapas
+// ==============================================================================
+
+prontera,150,180,4	script	Arena BG Wall Control::ArenaBG_Wall_Controller	4_F_KAFRA1,{
+	mes "[Arena BG Wall Controller]";
+	mes "Selecione a arena para configurar as barreiras:";
+	next;
+	switch(select("Arena GlastHeim (2025arena1):Arena NifHeim (2025arena2):Arena NightFall (2025arena3):Arena Ayothaya (2025arena4):Somatology Lab (2025arena5):Arena Toy Factory (25ros03_01):Sair")) {
+		case 1:
+			callsub S_ConfigGlast;
+			close;
+		case 2:
+			callsub S_ConfigNif;
+			close;
+		case 3:
+			callsub S_ConfigNight;
+			close;
+		case 4:
+			callsub S_ConfigAyo;
+			close;
+		case 5:
+			callsub S_ConfigSo;
+			close;
+		case 6:
+			callsub S_ConfigToy;
+			close;
+		default:
+			close;
+	}
+
+S_ConfigGlast:
+	mes "[Arena BG Wall Controller]";
+	mes "Arena GlastHeim";
+	mes "Modo atual: ^00AAFF"+.mode_gh_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue bloco 1 (a1-a4):Blue bloco 2 (a5-a8):Red bloco 1 (v1-v4):Red bloco 2 (v5-v8):Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode_gh, 0; set .mode_gh_name$, "Sem barreira"; return;
+		case 2: set .mode_gh, 1; set .mode_gh_name$, "Blue bloco 1"; return;
+		case 3: set .mode_gh, 2; set .mode_gh_name$, "Blue bloco 2"; return;
+		case 4: set .mode_gh, 3; set .mode_gh_name$, "Red bloco 1"; return;
+		case 5: set .mode_gh, 4; set .mode_gh_name$, "Red bloco 2"; return;
+		case 6: set .mode_gh, 5; set .mode_gh_name$, "Todas"; return;
+		case 7: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena1"; return;
+		case 8: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena1"; return;
+	}
+	return;
+
+S_ConfigNif:
+	mes "[Arena BG Wall Controller]";
+	mes "Arena NifHeim";
+	mes "Modo atual: ^00AAFF"+.mode_nf_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue bloco 1:Blue bloco 2:Red bloco 1:Red bloco 2:Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode_nf, 0; set .mode_nf_name$, "Sem barreira"; return;
+		case 2: set .mode_nf, 1; set .mode_nf_name$, "Blue bloco 1"; return;
+		case 3: set .mode_nf, 2; set .mode_nf_name$, "Blue bloco 2"; return;
+		case 4: set .mode_nf, 3; set .mode_nf_name$, "Red bloco 1"; return;
+		case 5: set .mode_nf, 4; set .mode_nf_name$, "Red bloco 2"; return;
+		case 6: set .mode_nf, 5; set .mode_nf_name$, "Todas"; return;
+		case 7: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena2"; return;
+		case 8: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2"; return;
+	}
+	return;
+
+S_ConfigNight:
+	mes "[Arena BG Wall Controller]";
+	mes "Arena NightFall";
+	mes "Modo atual: ^00AAFF"+.mode_ni_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue bloco 1:Blue bloco 2:Red bloco 1:Red bloco 2:Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode_ni, 0; set .mode_ni_name$, "Sem barreira"; return;
+		case 2: set .mode_ni, 1; set .mode_ni_name$, "Blue bloco 1"; return;
+		case 3: set .mode_ni, 2; set .mode_ni_name$, "Blue bloco 2"; return;
+		case 4: set .mode_ni, 3; set .mode_ni_name$, "Red bloco 1"; return;
+		case 5: set .mode_ni, 4; set .mode_ni_name$, "Red bloco 2"; return;
+		case 6: set .mode_ni, 5; set .mode_ni_name$, "Todas"; return;
+		case 7: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena3"; return;
+		case 8: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3"; return;
+	}
+	return;
+
+S_ConfigAyo:
+	mes "[Arena BG Wall Controller]";
+	mes "Arena Ayothaya (y=141)";
+	mes "Modo atual: ^00AAFF"+.mode_ayo_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue bloco 1 (x246-249):Blue bloco 2 (x250-253):Red bloco 1 (x102-105):Red bloco 2 (x106-109):Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode_ayo, 0; set .mode_ayo_name$, "Sem barreira"; return;
+		case 2: set .mode_ayo, 1; set .mode_ayo_name$, "Blue bloco 1"; return;
+		case 3: set .mode_ayo, 2; set .mode_ayo_name$, "Blue bloco 2"; return;
+		case 4: set .mode_ayo, 3; set .mode_ayo_name$, "Red bloco 1"; return;
+		case 5: set .mode_ayo, 4; set .mode_ayo_name$, "Red bloco 2"; return;
+		case 6: set .mode_ayo, 5; set .mode_ayo_name$, "Todas"; return;
+		case 7: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena4"; return;
+		case 8: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena4"; return;
+	}
+	return;
+
+S_ConfigSo:
+	mes "[Arena BG Wall Controller]";
+	mes "Somatology Laboratory";
+	mes "Modo atual: ^00AAFF"+.mode_so_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue x151 y83-80:Blue x151 y79-76:Red x46 y80-78:Red x46 y77-76:Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode_so, 0; set .mode_so_name$, "Sem barreira"; return;
+		case 2: set .mode_so, 1; set .mode_so_name$, "Blue bloco 1"; return;
+		case 3: set .mode_so, 2; set .mode_so_name$, "Blue bloco 2"; return;
+		case 4: set .mode_so, 3; set .mode_so_name$, "Red bloco 1"; return;
+		case 5: set .mode_so, 4; set .mode_so_name$, "Red bloco 2"; return;
+		case 6: set .mode_so, 5; set .mode_so_name$, "Todas"; return;
+		case 7: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena5"; return;
+		case 8: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena5"; return;
+	}
+	return;
+
+S_ConfigToy:
+	mes "[Arena BG Wall Controller]";
+	mes "Arena Toy Factory";
+	mes "Modo atual: ^00AAFF"+.mode_ty_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue bloco (60,81..78):Red bloco (139,78..81):Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode_ty, 0; set .mode_ty_name$, "Sem barreira"; return;
+		case 2: set .mode_ty, 1; set .mode_ty_name$, "Blue bloco"; return;
+		case 3: set .mode_ty, 2; set .mode_ty_name$, "Red bloco"; return;
+		case 4: set .mode_ty, 3; set .mode_ty_name$, "Todas"; return;
+		case 5: donpcevent "ArenaBG_Wall_Controller::OnClose_25ros03_01"; return;
+		case 6: donpcevent "ArenaBG_Wall_Controller::OnOpen_25ros03_01"; return;
+	}
+	return;
+
+OnInit:
+	set .mode_gh, 5;
+	set .mode_gh_name$, "Todas";
+	set .mode_nf, 5;
+	set .mode_nf_name$, "Todas";
+	set .mode_ty, 3;
+	set .mode_ty_name$, "Todas";
+	set .mode_ni, 5;
+	set .mode_ni_name$, "Todas";
+	set .mode_ayo, 5;
+	set .mode_ayo_name$, "Todas";
+	set .mode_so, 5;
+	set .mode_so_name$, "Todas";
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena1";
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2";
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3";
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena4";
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena5";
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_25ros03_01";
+	end;
+
+OnClose_2025arena1:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena1";
+	if (.mode_gh == 0) end;
+	if (.mode_gh == 1 || .mode_gh == 5) {
+		setcell "2025arena1",221,159,221,159,CELL_WALKABLE,0;
+		setcell "2025arena1",221,158,221,158,CELL_WALKABLE,0;
+		setcell "2025arena1",221,157,221,157,CELL_WALKABLE,0;
+		setcell "2025arena1",221,156,221,156,CELL_WALKABLE,0;
+	}
+	if (.mode_gh == 2 || .mode_gh == 5) {
+		setcell "2025arena1",221,155,221,155,CELL_WALKABLE,0;
+		setcell "2025arena1",221,154,221,154,CELL_WALKABLE,0;
+		setcell "2025arena1",221,153,221,153,CELL_WALKABLE,0;
+		setcell "2025arena1",221,152,221,152,CELL_WALKABLE,0;
+	}
+	if (.mode_gh == 3 || .mode_gh == 5) {
+		setcell "2025arena1",134,159,134,159,CELL_WALKABLE,0;
+		setcell "2025arena1",134,158,134,158,CELL_WALKABLE,0;
+		setcell "2025arena1",134,157,134,157,CELL_WALKABLE,0;
+		setcell "2025arena1",134,156,134,156,CELL_WALKABLE,0;
+	}
+	if (.mode_gh == 4 || .mode_gh == 5) {
+		setcell "2025arena1",134,155,134,155,CELL_WALKABLE,0;
+		setcell "2025arena1",134,154,134,154,CELL_WALKABLE,0;
+		setcell "2025arena1",134,153,134,153,CELL_WALKABLE,0;
+		setcell "2025arena1",134,152,134,152,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpen_2025arena1:
+	setcell "2025arena1",221,159,221,159,CELL_WALKABLE,1;
+	setcell "2025arena1",221,158,221,158,CELL_WALKABLE,1;
+	setcell "2025arena1",221,157,221,157,CELL_WALKABLE,1;
+	setcell "2025arena1",221,156,221,156,CELL_WALKABLE,1;
+	setcell "2025arena1",221,155,221,155,CELL_WALKABLE,1;
+	setcell "2025arena1",221,154,221,154,CELL_WALKABLE,1;
+	setcell "2025arena1",221,153,221,153,CELL_WALKABLE,1;
+	setcell "2025arena1",221,152,221,152,CELL_WALKABLE,1;
+	setcell "2025arena1",134,159,134,159,CELL_WALKABLE,1;
+	setcell "2025arena1",134,158,134,158,CELL_WALKABLE,1;
+	setcell "2025arena1",134,157,134,157,CELL_WALKABLE,1;
+	setcell "2025arena1",134,156,134,156,CELL_WALKABLE,1;
+	setcell "2025arena1",134,155,134,155,CELL_WALKABLE,1;
+	setcell "2025arena1",134,154,134,154,CELL_WALKABLE,1;
+	setcell "2025arena1",134,153,134,153,CELL_WALKABLE,1;
+	setcell "2025arena1",134,152,134,152,CELL_WALKABLE,1;
+	end;
+
+OnClose_2025arena2:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2";
+	if (.mode_nf == 0) end;
+	if (.mode_nf == 1 || .mode_nf == 5) {
+		setcell "2025arena2",142,82,142,82,CELL_WALKABLE,0;
+		setcell "2025arena2",142,81,142,81,CELL_WALKABLE,0;
+		setcell "2025arena2",142,80,142,80,CELL_WALKABLE,0;
+	}
+	if (.mode_nf == 2 || .mode_nf == 5) {
+		setcell "2025arena2",142,79,142,79,CELL_WALKABLE,0;
+		setcell "2025arena2",142,78,142,78,CELL_WALKABLE,0;
+		setcell "2025arena2",142,77,142,77,CELL_WALKABLE,0;
+	}
+	if (.mode_nf == 3 || .mode_nf == 5) {
+		setcell "2025arena2",56,82,56,82,CELL_WALKABLE,0;
+		setcell "2025arena2",56,81,56,81,CELL_WALKABLE,0;
+		setcell "2025arena2",56,80,56,80,CELL_WALKABLE,0;
+	}
+	if (.mode_nf == 4 || .mode_nf == 5) {
+		setcell "2025arena2",56,79,56,79,CELL_WALKABLE,0;
+		setcell "2025arena2",56,78,56,78,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpen_2025arena2:
+	setcell "2025arena2",142,82,142,82,CELL_WALKABLE,1;
+	setcell "2025arena2",142,81,142,81,CELL_WALKABLE,1;
+	setcell "2025arena2",142,80,142,80,CELL_WALKABLE,1;
+	setcell "2025arena2",142,79,142,79,CELL_WALKABLE,1;
+	setcell "2025arena2",142,78,142,78,CELL_WALKABLE,1;
+	setcell "2025arena2",142,77,142,77,CELL_WALKABLE,1;
+	setcell "2025arena2",56,82,56,82,CELL_WALKABLE,1;
+	setcell "2025arena2",56,81,56,81,CELL_WALKABLE,1;
+	setcell "2025arena2",56,80,56,80,CELL_WALKABLE,1;
+	setcell "2025arena2",56,79,56,79,CELL_WALKABLE,1;
+	setcell "2025arena2",56,78,56,78,CELL_WALKABLE,1;
+	end;
+
+OnClose_2025arena3:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3";
+	if (.mode_ni == 0) end;
+	if (.mode_ni == 1 || .mode_ni == 5) {
+		setcell "2025arena3",148,102,148,102,CELL_WALKABLE,0;
+		setcell "2025arena3",148,101,148,101,CELL_WALKABLE,0;
+		setcell "2025arena3",148,100,148,100,CELL_WALKABLE,0;
+	}
+	if (.mode_ni == 2 || .mode_ni == 5) {
+		setcell "2025arena3",148,99,148,99,CELL_WALKABLE,0;
+		setcell "2025arena3",148,98,148,98,CELL_WALKABLE,0;
+		setcell "2025arena3",148,97,148,97,CELL_WALKABLE,0;
+	}
+	if (.mode_ni == 3 || .mode_ni == 5) {
+		setcell "2025arena3",51,102,51,102,CELL_WALKABLE,0;
+		setcell "2025arena3",51,101,51,101,CELL_WALKABLE,0;
+		setcell "2025arena3",51,100,51,100,CELL_WALKABLE,0;
+	}
+	if (.mode_ni == 4 || .mode_ni == 5) {
+		setcell "2025arena3",51,99,51,99,CELL_WALKABLE,0;
+		setcell "2025arena3",51,98,51,98,CELL_WALKABLE,0;
+		setcell "2025arena3",51,97,51,97,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpen_2025arena3:
+	setcell "2025arena3",148,102,148,102,CELL_WALKABLE,1;
+	setcell "2025arena3",148,101,148,101,CELL_WALKABLE,1;
+	setcell "2025arena3",148,100,148,100,CELL_WALKABLE,1;
+	setcell "2025arena3",148,99,148,99,CELL_WALKABLE,1;
+	setcell "2025arena3",148,98,148,98,CELL_WALKABLE,1;
+	setcell "2025arena3",148,97,148,97,CELL_WALKABLE,1;
+	setcell "2025arena3",51,102,51,102,CELL_WALKABLE,1;
+	setcell "2025arena3",51,101,51,101,CELL_WALKABLE,1;
+	setcell "2025arena3",51,100,51,100,CELL_WALKABLE,1;
+	setcell "2025arena3",51,99,51,99,CELL_WALKABLE,1;
+	setcell "2025arena3",51,98,51,98,CELL_WALKABLE,1;
+	setcell "2025arena3",51,97,51,97,CELL_WALKABLE,1;
+	end;
+
+OnClose_2025arena4:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena4";
+	if (.mode_ayo == 0) end;
+	if (.mode_ayo == 1 || .mode_ayo == 5) {
+		setcell "2025arena4",246,141,246,141,CELL_WALKABLE,0;
+		setcell "2025arena4",247,141,247,141,CELL_WALKABLE,0;
+		setcell "2025arena4",248,141,248,141,CELL_WALKABLE,0;
+		setcell "2025arena4",249,141,249,141,CELL_WALKABLE,0;
+	}
+	if (.mode_ayo == 2 || .mode_ayo == 5) {
+		setcell "2025arena4",250,141,250,141,CELL_WALKABLE,0;
+		setcell "2025arena4",251,141,251,141,CELL_WALKABLE,0;
+		setcell "2025arena4",252,141,252,141,CELL_WALKABLE,0;
+		setcell "2025arena4",253,141,253,141,CELL_WALKABLE,0;
+	}
+	if (.mode_ayo == 3 || .mode_ayo == 5) {
+		setcell "2025arena4",102,141,102,141,CELL_WALKABLE,0;
+		setcell "2025arena4",103,141,103,141,CELL_WALKABLE,0;
+		setcell "2025arena4",104,141,104,141,CELL_WALKABLE,0;
+		setcell "2025arena4",105,141,105,141,CELL_WALKABLE,0;
+	}
+	if (.mode_ayo == 4 || .mode_ayo == 5) {
+		setcell "2025arena4",106,141,106,141,CELL_WALKABLE,0;
+		setcell "2025arena4",107,141,107,141,CELL_WALKABLE,0;
+		setcell "2025arena4",108,141,108,141,CELL_WALKABLE,0;
+		setcell "2025arena4",109,141,109,141,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpen_2025arena4:
+	setcell "2025arena4",246,141,246,141,CELL_WALKABLE,1;
+	setcell "2025arena4",247,141,247,141,CELL_WALKABLE,1;
+	setcell "2025arena4",248,141,248,141,CELL_WALKABLE,1;
+	setcell "2025arena4",249,141,249,141,CELL_WALKABLE,1;
+	setcell "2025arena4",250,141,250,141,CELL_WALKABLE,1;
+	setcell "2025arena4",251,141,251,141,CELL_WALKABLE,1;
+	setcell "2025arena4",252,141,252,141,CELL_WALKABLE,1;
+	setcell "2025arena4",253,141,253,141,CELL_WALKABLE,1;
+	setcell "2025arena4",102,141,102,141,CELL_WALKABLE,1;
+	setcell "2025arena4",103,141,103,141,CELL_WALKABLE,1;
+	setcell "2025arena4",104,141,104,141,CELL_WALKABLE,1;
+	setcell "2025arena4",105,141,105,141,CELL_WALKABLE,1;
+	setcell "2025arena4",106,141,106,141,CELL_WALKABLE,1;
+	setcell "2025arena4",107,141,107,141,CELL_WALKABLE,1;
+	setcell "2025arena4",108,141,108,141,CELL_WALKABLE,1;
+	setcell "2025arena4",109,141,109,141,CELL_WALKABLE,1;
+	end;
+
+OnClose_2025arena5:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena5";
+	if (.mode_so == 0) end;
+	if (.mode_so == 1 || .mode_so == 5) {
+		setcell "2025arena5",151,83,151,83,CELL_WALKABLE,0;
+		setcell "2025arena5",151,82,151,82,CELL_WALKABLE,0;
+		setcell "2025arena5",151,81,151,81,CELL_WALKABLE,0;
+		setcell "2025arena5",151,80,151,80,CELL_WALKABLE,0;
+	}
+	if (.mode_so == 2 || .mode_so == 5) {
+		setcell "2025arena5",151,79,151,79,CELL_WALKABLE,0;
+		setcell "2025arena5",151,78,151,78,CELL_WALKABLE,0;
+		setcell "2025arena5",151,77,151,77,CELL_WALKABLE,0;
+		setcell "2025arena5",151,76,151,76,CELL_WALKABLE,0;
+	}
+	if (.mode_so == 3 || .mode_so == 5) {
+		setcell "2025arena5",46,80,46,80,CELL_WALKABLE,0;
+		setcell "2025arena5",46,79,46,79,CELL_WALKABLE,0;
+		setcell "2025arena5",46,78,46,78,CELL_WALKABLE,0;
+	}
+	if (.mode_so == 4 || .mode_so == 5) {
+		setcell "2025arena5",46,77,46,77,CELL_WALKABLE,0;
+		setcell "2025arena5",46,76,46,76,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpen_2025arena5:
+	setcell "2025arena5",151,83,151,83,CELL_WALKABLE,1;
+	setcell "2025arena5",151,82,151,82,CELL_WALKABLE,1;
+	setcell "2025arena5",151,81,151,81,CELL_WALKABLE,1;
+	setcell "2025arena5",151,80,151,80,CELL_WALKABLE,1;
+	setcell "2025arena5",151,79,151,79,CELL_WALKABLE,1;
+	setcell "2025arena5",151,78,151,78,CELL_WALKABLE,1;
+	setcell "2025arena5",151,77,151,77,CELL_WALKABLE,1;
+	setcell "2025arena5",151,76,151,76,CELL_WALKABLE,1;
+	setcell "2025arena5",46,80,46,80,CELL_WALKABLE,1;
+	setcell "2025arena5",46,79,46,79,CELL_WALKABLE,1;
+	setcell "2025arena5",46,78,46,78,CELL_WALKABLE,1;
+	setcell "2025arena5",46,77,46,77,CELL_WALKABLE,1;
+	setcell "2025arena5",46,76,46,76,CELL_WALKABLE,1;
+	end;
+
+OnClose_25ros03_01:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_25ros03_01";
+	if (.mode_ty == 0) end;
+	if (.mode_ty == 1 || .mode_ty == 3) {
+		setcell "25ros03_01",60,81,60,81,CELL_WALKABLE,0;
+		setcell "25ros03_01",60,80,60,80,CELL_WALKABLE,0;
+		setcell "25ros03_01",60,79,60,79,CELL_WALKABLE,0;
+		setcell "25ros03_01",60,78,60,78,CELL_WALKABLE,0;
+	}
+	if (.mode_ty == 2 || .mode_ty == 3) {
+		setcell "25ros03_01",139,78,139,78,CELL_WALKABLE,0;
+		setcell "25ros03_01",139,79,139,79,CELL_WALKABLE,0;
+		setcell "25ros03_01",139,80,139,80,CELL_WALKABLE,0;
+		setcell "25ros03_01",139,81,139,81,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpen_25ros03_01:
+	setcell "25ros03_01",60,81,60,81,CELL_WALKABLE,1;
+	setcell "25ros03_01",60,80,60,80,CELL_WALKABLE,1;
+	setcell "25ros03_01",60,79,60,79,CELL_WALKABLE,1;
+	setcell "25ros03_01",60,78,60,78,CELL_WALKABLE,1;
+	setcell "25ros03_01",139,78,139,78,CELL_WALKABLE,1;
+	setcell "25ros03_01",139,79,139,79,CELL_WALKABLE,1;
+	setcell "25ros03_01",139,80,139,80,CELL_WALKABLE,1;
+	setcell "25ros03_01",139,81,139,81,CELL_WALKABLE,1;
+	end;
+}

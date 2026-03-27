@@ -1,0 +1,91 @@
+//===== rAthena Script =======================================
+//= Dummy Respawn ROS 2026
+//===== Description: =========================================
+//= Mantem dummys vivos em pontos fixos.
+//= Cada dummy so respawna depois da propria morte.
+//============================================================
+
+-	script	ROS2026_Dummy_1	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",107,139,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}
+
+-	script	ROS2026_Dummy_2	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",112,139,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}
+
+-	script	ROS2026_Dummy_3	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",117,139,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}
+
+-	script	ROS2026_Dummy_4	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",112,139,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}
+
+-	script	ROS2026_Dummy_5	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",121,139,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}

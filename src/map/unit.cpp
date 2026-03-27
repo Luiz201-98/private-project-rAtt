@@ -36,6 +36,7 @@
 #include "pc.hpp"
 #include "pet.hpp"
 #include "skill.hpp"
+#include "status.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
 
@@ -298,6 +299,13 @@ int32 unit_walktoxy_sub(struct block_list *bl)
 	if (bl->type == BL_PC) {
 		map_session_data *sd = BL_CAST(BL_PC, bl);
 		sd->head_dir = DIR_NORTH;
+		// Feint Bomb: first walk clears skill overhead for enemies only; party/guild/allies still see it (val4 latch).
+		if( status_change *tsc = status_get_sc(bl); tsc != nullptr ){
+			if( status_change_entry *sce = tsc->getSCE(SC__FEINTBOMB); sce != nullptr && sce->val4 == 0 ){
+				clif_skillcastcancel_enemies_only( *sd );
+				sce->val4 = 1;
+			}
+		}
 	}
 #if PACKETVER >= 20170726
 	// If this is a walking NPC and it will use a player sprite
@@ -2323,6 +2331,7 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 
 		if (!skill_check_condition_castbegin(*sd, skill_id, skill_lv))
 			return 0;
+
 	}
 
 	if( src->type == BL_MOB ) {

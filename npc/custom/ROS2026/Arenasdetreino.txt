@@ -1,11 +1,11 @@
 turbo_room,104,123,5	script	Arena de Testes ROS	430,{  
-    // Configuração das arenas  
+    // Configura??o das arenas  
     setarray .@arena_names$[0], "Nightmare Toy Factory", "Arena Forgotten Glasheim", "Arena NiflHeim", "Arena NightFall of Brazilis", "Arena Sunset of Ayothaya", "Arena Somatology Labotory";  
-    setarray .@arena_maps$[0], "25ros03_01", "2025arena1", "2025arena2", "2025arena3", "2025arena4", "2025arena5";  
+    setarray .@arena_maps$[0], "25ros03_02", "2025arena11", "2025arena22", "2025arena33", "2025arena44", "2025arena55";  
     setarray .@arena_x[0], 100, 177, 91, 132, 178, 99;  
     setarray .@arena_y[0], 80, 140, 79, 99, 144, 70;  
       
-    // Constrói o menu dinâmico com contagem de jogadores  
+    // Constr?i o menu din?mico com contagem de jogadores  
     set .@menu$, "";  
     for (set .@i, 0; .@i < getarraysize(.@arena_names$); set .@i, .@i + 1) {  
         set .@count, getmapusers(.@arena_maps$[.@i]);  
@@ -15,16 +15,17 @@ turbo_room,104,123,5	script	Arena de Testes ROS	430,{
     }  
       
     mes "[Arena de Testes ROS]";  
-    mes "Bem-vindo à Arena de Testes ROS!";  
-    mes "Escolha uma arena para entrar:";  
+    mes "Bem-vindo à Arena de Testes ROS.";  
+    mes "Selecione abaixo a arena desejada para ingressar no ambiente competitivo.";  
     next;  
       
     set .@selection, select(.@menu$) - 1;  
       
-    // Verifica se a arena está cheia  
+    // Verifica se a arena est? cheia  
     if (getmapusers(.@arena_maps$[.@selection]) >= 50) {  
         mes "[Arena de Testes ROS]";  
-        mes "Desculpe, esta arena está cheia!";  
+        mes "Esta arena atingiu a capacidade máxima de participantes.";  
+        mes "Por favor, selecione outra opção disponível.";  
         close;  
     }  
       

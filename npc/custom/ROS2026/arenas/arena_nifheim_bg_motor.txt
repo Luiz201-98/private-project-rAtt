@@ -1,0 +1,256 @@
+///=============================================================================
+/// Arena NifHeim 7x7 BG - Motor principal (mapa 2025arena2)
+///=============================================================================
+
+-	script	ArenaNif_BG	-1,{
+	end;
+
+OnInit:
+	setmapflag "2025arena2", mf_battleground;
+	setmapflag "2025arena2", mf_noreturn;
+	end;
+
+OnBlueQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+	end;
+
+OnBlueDie:
+	if ($@arenaNifBG == 2) {
+		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		bg_updatescore "2025arena2",.Blue_Count,.Red_Count;
+		if (.Blue_Count < 1)
+			donpcevent "ArenaNif_BG::OnRedWin";
+	}
+	end;
+
+OnRedQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+	end;
+
+OnRedDie:
+	if ($@arenaNifBG == 2) {
+		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		bg_updatescore "2025arena2",.Blue_Count,.Red_Count;
+		if (.Red_Count < 1)
+			donpcevent "ArenaNif_BG::OnBlueWin";
+	}
+	end;
+
+OnStart:
+	announce "[Arena NifHeim] Dois times entraram na Arena NifHeim.",bc_yellow;
+	set $@arenaNifBG_Victory, 0;
+	bg_warp $@arenaNifBG_id1,"2025arena2",156,80;
+	bg_warp $@arenaNifBG_id2,"2025arena2",46,80;
+	donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena2";
+
+	sleep 100;
+	set .Blue_Count, bg_get_data($@arenaNifBG_id1, 0);
+	set .Red_Count,  bg_get_data($@arenaNifBG_id2, 0);
+	bg_updatescore "2025arena2",.Blue_Count,.Red_Count;
+
+	query_sql("INSERT INTO arena_nif_matches (started_at, map_name) VALUES (NOW(), '2025arena2')");
+	query_sql("SELECT LAST_INSERT_ID()", $arenaNif_match_id);
+
+	getmapunits BL_PC, "2025arena2", .@uids;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+		if (!attachrid(.@uids[.@i])) continue;
+
+		.@cid    = getcharid(0);
+		.@aid    = getcharid(3);
+		.@gid    = getcharid(2);
+		.@bgid   = getcharid(4);
+		.@class  = readparam(Class);
+		.@name$  = escape_sql(strcharinfo(0));
+
+		if (.@bgid == $@arenaNifBG_id1)
+			.@team = 1;
+		else if (.@bgid == $@arenaNifBG_id2)
+			.@team = 2;
+		else
+			continue;
+
+		query_sql(
+			"INSERT INTO arena_nif_match_players " +
+			"(match_id,char_id,char_name,account_id,guild_id,team,class_id) VALUES ("+
+			$arenaNif_match_id+","+.@cid+",'"+.@name$+"',"+.@aid+","+.@gid+","+.@team+","+.@class+")"
+		);
+
+		setd "#ARENANIF_DAMAGE_DONE", 0;
+		setd "#ARENANIF_DAMAGE_TAKEN", 0;
+		setd "#ARENANIF_APM", 0;
+	}
+	detachrid;
+	initnpctimer;
+	end;
+
+OnTimer1000:   mapannounce "2025arena2","A batalha comecara em 25 segundos!",bc_yellow; end;
+OnTimer2000:   mapannounce "2025arena2","A batalha comecara em 24 segundos!",bc_yellow; end;
+OnTimer3000:   mapannounce "2025arena2","A batalha comecara em 23 segundos!",bc_yellow; end;
+OnTimer4000:   mapannounce "2025arena2","A batalha comecara em 22 segundos!",bc_yellow; end;
+OnTimer5000:   mapannounce "2025arena2","A batalha comecara em 21 segundos!",bc_yellow; end;
+OnTimer6000:   mapannounce "2025arena2","A batalha comecara em 20 segundos!",bc_yellow; end;
+OnTimer7000:   mapannounce "2025arena2","A batalha comecara em 19 segundos!",bc_yellow; end;
+OnTimer8000:   mapannounce "2025arena2","A batalha comecara em 18 segundos!",bc_yellow; end;
+OnTimer9000:   mapannounce "2025arena2","A batalha comecara em 17 segundos!",bc_yellow; end;
+OnTimer10000:  mapannounce "2025arena2","A batalha comecara em 16 segundos!",bc_yellow; end;
+OnTimer11000:  mapannounce "2025arena2","A batalha comecara em 15 segundos!",bc_yellow; end;
+OnTimer12000:  mapannounce "2025arena2","A batalha comecara em 14 segundos!",bc_yellow; end;
+OnTimer13000:  mapannounce "2025arena2","A batalha comecara em 13 segundos!",bc_yellow; end;
+OnTimer14000:  mapannounce "2025arena2","A batalha comecara em 12 segundos!",bc_yellow; end;
+OnTimer15000:  mapannounce "2025arena2","A batalha comecara em 11 segundos!",bc_yellow; end;
+OnTimer16000:  mapannounce "2025arena2","A batalha comecara em 10 segundos!",bc_yellow; end;
+OnTimer17000:  mapannounce "2025arena2","A batalha comecara em 9 segundos!",bc_yellow; end;
+OnTimer18000:  mapannounce "2025arena2","A batalha comecara em 8 segundos!",bc_yellow; end;
+OnTimer19000:  mapannounce "2025arena2","A batalha comecara em 7 segundos!",bc_yellow; end;
+OnTimer20000:  mapannounce "2025arena2","A batalha comecara em 6 segundos!",bc_yellow; end;
+OnTimer21000:  mapannounce "2025arena2","A batalha comecara em 5 segundos!",bc_yellow; end;
+OnTimer22000:  mapannounce "2025arena2","A batalha comecara em 4 segundos!",bc_yellow; end;
+OnTimer23000:  mapannounce "2025arena2","A batalha comecara em 3 segundos!",bc_yellow; end;
+OnTimer24000:  mapannounce "2025arena2","A batalha comecara em 2 segundos!",bc_yellow; end;
+OnTimer24500:  mapannounce "2025arena2","A batalha comecara em 1 segundo!",bc_yellow; end;
+
+OnTimer25000:
+	set $@arenaNifBG, 2;
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2";
+	mapannounce "2025arena2","[Arena NifHeim] A batalha comecou! Boa sorte aos dois times!",bc_yellow;
+	end;
+
+OnTimer330000:
+	mapannounce "2025arena2","[Arena NifHeim] A batalha terminara em 30 segundos!",bc_yellow;
+	end;
+
+OnTimer360000:
+	if (.Red_Count > .Blue_Count)
+		donpcevent "ArenaNif_BG::OnRedWin";
+	else if (.Red_Count < .Blue_Count)
+		donpcevent "ArenaNif_BG::OnBlueWin";
+	else {
+		set $@arenaNifBG, 3;
+		set $@arenaNifBG_Victory, 3;
+		stopnpctimer;
+		sleep 2000;
+		announce "[Arena NifHeim] As duas equipes empataram!",bc_yellow;
+		query_sql(
+			"UPDATE arena_nif_matches SET ended_at = NOW(), winner_team = 0, end_reason = 3, " +
+			"blue_alive_end = "+.Blue_Count+", red_alive_end = "+.Red_Count+
+			" WHERE id = "+$arenaNif_match_id
+		);
+		donpcevent "ArenaNif_BG::OnStop";
+	}
+	end;
+
+OnBlueWin:
+	set $@arenaNifBG, 3;
+	set $@arenaNifBG_Victory, 1;
+	query_sql(
+		"UPDATE arena_nif_matches SET ended_at = NOW(), winner_team = 1, end_reason = 1, " +
+		"blue_alive_end = "+.Blue_Count+", red_alive_end = "+.Red_Count+
+		" WHERE id = "+$arenaNif_match_id
+	);
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena NifHeim] Time 1 venceu!",bc_all,0x00bfff;
+	sleep 3000;
+	donpcevent "ArenaNif_BG::OnStop";
+	end;
+
+OnRedWin:
+	set $@arenaNifBG, 3;
+	set $@arenaNifBG_Victory, 2;
+	query_sql(
+		"UPDATE arena_nif_matches SET ended_at = NOW(), winner_team = 2, end_reason = 1, " +
+		"blue_alive_end = "+.Blue_Count+", red_alive_end = "+.Red_Count+
+		" WHERE id = "+$arenaNif_match_id
+	);
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena NifHeim] Time 2 venceu!",bc_all,0xff6347;
+	sleep 3000;
+	donpcevent "ArenaNif_BG::OnStop";
+	end;
+
+OnStop:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2";
+	mapwarp "2025arena2","turbo_room",100,100;
+	donpcevent "ArenaNif_BG::OnReset";
+	end;
+
+OnReset:
+	stopnpctimer;
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2";
+	set .Blue_Count, 0;
+	set .Red_Count, 0;
+	set .Blue_Score, 0;
+	set .Red_Score, 0;
+	set $@arenaNifBG_Victory, 0;
+	set $@arenaNif_in_match, 0;
+	if ($@arenaNifBG_id1) { bg_destroy $@arenaNifBG_id1; set $@arenaNifBG_id1, 0; }
+	if ($@arenaNifBG_id2) { bg_destroy $@arenaNifBG_id2; set $@arenaNifBG_id2, 0; }
+	bg_updatescore "2025arena2",0,0;
+	set $@arenaNifBG, 0;
+	end;
+}
+
+///=============================================================================
+/// Waitingrooms Arena NifHeim
+///=============================================================================
+
+turbo_room,135,93,5	script	ArenaNif Azul::ArenaNif_WR_Blue	417,{
+	end;
+OnInit:
+	waitingroom "Arena NifHeim - Azul",3,"ArenaNif_Wait_BG::OnBlueJoin",1;
+	end;
+OnEnterBG:
+	set $@arenaNifBG_id1, waitingroom2bg("2025arena2",156,80,"ArenaNif_BG::OnBlueQuit","ArenaNif_BG::OnBlueDie");
+	end;
+}
+
+turbo_room,64,93,5	script	ArenaNif Vermelho::ArenaNif_WR_Red	414,{
+	end;
+OnInit:
+	waitingroom "Arena NifHeim - Vermelho",3,"ArenaNif_Wait_BG::OnRedJoin",1;
+	end;
+OnEnterBG:
+	set $@arenaNifBG_id2, waitingroom2bg("2025arena2",46,80,"ArenaNif_BG::OnRedQuit","ArenaNif_BG::OnRedDie");
+	end;
+}
+
+-	script	ArenaNif_Wait_BG	-1,{
+	end;
+OnInit:
+	initnpctimer;
+	set .last_blue, -1;
+	set .last_red, -1;
+	end;
+OnBlueJoin:
+OnRedJoin:
+	donpcevent "ArenaNif_Wait_BG::OnReadyCheck";
+	end;
+OnTimer1000:
+	donpcevent "ArenaNif_Wait_BG::OnReadyCheck";
+	initnpctimer;
+	end;
+OnReadyCheck:
+	if ($@arenaNifBG)
+		end;
+	set .@blue, getwaitingroomstate(0,"ArenaNif_WR_Blue");
+	set .@red,  getwaitingroomstate(0,"ArenaNif_WR_Red");
+	if (.@blue != .last_blue || .@red != .last_red) {
+		// Anuncia por area para cada lado (vermelho esquerdo / azul direito)
+		areaannounce "turbo_room",0,70,99,120,"[Arena NifHeim] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
+		areaannounce "turbo_room",100,70,199,120,"[Arena NifHeim] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
+		set .last_blue, .@blue;
+		set .last_red, .@red;
+	}
+	if ((.@blue < 2) || (.@red < 2))
+		end;
+	set $@arenaNifBG, 1;
+	donpcevent "ArenaNif_WR_Blue::OnEnterBG";
+	donpcevent "ArenaNif_WR_Red::OnEnterBG";
+	donpcevent "ArenaNif_BG::OnStart";
+	end;
+}

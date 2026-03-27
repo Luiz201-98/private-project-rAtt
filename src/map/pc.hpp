@@ -432,6 +432,16 @@ public:
 		uint32 prevend : 1;//used to flag wheather you've spent 40sp to open the vending or not.
 		bool pending_vending_ui; // flag whether the vending packet should still be sent to this player or not
 		uint32 warping : 1;//states whether you're in the middle of a warp processing
+		/// When set, map_moveblock does not drag NC_NEUTRALBARRIER units (knockback during NC_F/B_SIDESLIDE); normal walk still follows.
+		uint32 skip_neutralbarrier_follow : 1;
+		/// After Side Slide: first map_moveblock pulls NB to player (rigid delta from neutralbarrier_slide_anchor_* to new cell).
+		uint32 neutralbarrier_resync_next_walk : 1;
+		/// Set when slide saved anchor coords (do not infer from -1 sentinel — (0,0) is a valid map cell).
+		uint32 neutralbarrier_slide_anchor_valid : 1;
+		/// Set when Side Slide saved live NB centroid offset from caster cell (used if layout is damaged).
+		uint32 neutralbarrier_slide_rel_set : 1;
+		/// Set after NC_NEUTRALBARRIER placement: centroid tile minus caster cell (catch-up pulls toward x+rel, not center feet).
+		uint32 neutralbarrier_centroid_rel_set : 1;
 		uint32 permanent_speed : 1; // When 1, speed cannot be changed through status_calc_pc().
 		bool hold_recalc;
 		uint32 banking : 1; //1 when we using the banking system 0 when closed
@@ -460,6 +470,13 @@ public:
 		t_itemid item_reform;
 		uint64 item_enchant_index;
 	} state;
+	/// Player tile before NC_F/B_SIDESLIDE (-1 = unset); used on first walk after slide to move NB back to the Mechanic.
+	int16 neutralbarrier_slide_anchor_x;
+	int16 neutralbarrier_slide_anchor_y;
+	int16 neutralbarrier_slide_rel_x;
+	int16 neutralbarrier_slide_rel_y;
+	int16 neutralbarrier_centroid_rel_x;
+	int16 neutralbarrier_centroid_rel_y;
 	struct {
 		unsigned char no_weapon_damage, no_magic_damage, no_misc_damage;
 		uint32 restart_full_recover : 1;

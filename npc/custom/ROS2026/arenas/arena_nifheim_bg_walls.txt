@@ -1,0 +1,83 @@
+// ==============================================================================
+// Arena NifHeim - Controlador externo de barreira por setcell
+// ==============================================================================
+
+prontera,151,180,4	script	ArenaNif Wall Control::ArenaNif_Wall_Controller	4_F_KAFRA1,{
+	if (.mode_name$ == "") {
+		set .mode, 5;
+		set .mode_name$, "Todas";
+	}
+	mes "[ArenaNif Wall Controller]";
+	mes "Modo atual de barreira: ^00AAFF"+.mode_name$+"^000000";
+	next;
+	switch(select("Sem barreira (seguro):Blue bloco 1 (142,82..80):Blue bloco 2 (142,79..77):Red bloco 1 (56,82..80):Red bloco 2 (56,79..78):Todas barreiras:Aplicar FECHAR agora:Aplicar ABRIR agora")) {
+		case 1: set .mode, 0; set .mode_name$, "Sem barreira"; break;
+		case 2: set .mode, 1; set .mode_name$, "Blue bloco 1"; break;
+		case 3: set .mode, 2; set .mode_name$, "Blue bloco 2"; break;
+		case 4: set .mode, 3; set .mode_name$, "Red bloco 1"; break;
+		case 5: set .mode, 4; set .mode_name$, "Red bloco 2"; break;
+		case 6: set .mode, 5; set .mode_name$, "Todas"; break;
+		case 7:
+			donpcevent "ArenaNif_Wall_Controller::OnCloseWalls";
+			mes "[ArenaNif Wall Controller]";
+			mes "Barreiras aplicadas agora com modo: ^00AAFF"+.mode_name$+"^000000";
+			close;
+		case 8:
+			donpcevent "ArenaNif_Wall_Controller::OnOpenWalls";
+			mes "[ArenaNif Wall Controller]";
+			mes "Barreiras abertas agora.";
+			close;
+	}
+	mes "[ArenaNif Wall Controller]";
+	mes "Novo modo: ^00AAFF"+.mode_name$+"^000000";
+	close;
+
+OnInit:
+	set .mode, 5;
+	set .mode_name$, "Todas";
+	donpcevent "ArenaNif_Wall_Controller::OnOpenWalls";
+	end;
+
+OnCloseWalls:
+	donpcevent "ArenaNif_Wall_Controller::OnOpenWalls";
+	if (.mode == 0) end;
+
+	// Blue bloco 1 (142,82..80)
+	if (.mode == 1 || .mode == 5) {
+		setcell "2025arena2",142,82,142,82,CELL_WALKABLE,0;
+		setcell "2025arena2",142,81,142,81,CELL_WALKABLE,0;
+		setcell "2025arena2",142,80,142,80,CELL_WALKABLE,0;
+	}
+	// Blue bloco 2 (142,79..77)
+	if (.mode == 2 || .mode == 5) {
+		setcell "2025arena2",142,79,142,79,CELL_WALKABLE,0;
+		setcell "2025arena2",142,78,142,78,CELL_WALKABLE,0;
+		setcell "2025arena2",142,77,142,77,CELL_WALKABLE,0;
+	}
+	// Red bloco 1 (56,82..80)
+	if (.mode == 3 || .mode == 5) {
+		setcell "2025arena2",56,82,56,82,CELL_WALKABLE,0;
+		setcell "2025arena2",56,81,56,81,CELL_WALKABLE,0;
+		setcell "2025arena2",56,80,56,80,CELL_WALKABLE,0;
+	}
+	// Red bloco 2 (56,79..78)
+	if (.mode == 4 || .mode == 5) {
+		setcell "2025arena2",56,79,56,79,CELL_WALKABLE,0;
+		setcell "2025arena2",56,78,56,78,CELL_WALKABLE,0;
+	}
+	end;
+
+OnOpenWalls:
+	setcell "2025arena2",142,82,142,82,CELL_WALKABLE,1;
+	setcell "2025arena2",142,81,142,81,CELL_WALKABLE,1;
+	setcell "2025arena2",142,80,142,80,CELL_WALKABLE,1;
+	setcell "2025arena2",142,79,142,79,CELL_WALKABLE,1;
+	setcell "2025arena2",142,78,142,78,CELL_WALKABLE,1;
+	setcell "2025arena2",142,77,142,77,CELL_WALKABLE,1;
+	setcell "2025arena2",56,82,56,82,CELL_WALKABLE,1;
+	setcell "2025arena2",56,81,56,81,CELL_WALKABLE,1;
+	setcell "2025arena2",56,80,56,80,CELL_WALKABLE,1;
+	setcell "2025arena2",56,79,56,79,CELL_WALKABLE,1;
+	setcell "2025arena2",56,78,56,78,CELL_WALKABLE,1;
+	end;
+}

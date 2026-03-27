@@ -55,6 +55,9 @@ enum e_battle_flag : uint16 {
 	BF_WEAPONMASK	= BF_WEAPON|BF_MAGIC|BF_MISC, /// Weapon attack mask
 	BF_RANGEMASK	= BF_SHORT|BF_LONG, /// Range attack mask
 	BF_SKILLMASK	= BF_SKILL|BF_NORMAL, /// Skill attack mask
+
+	/// Kyrie absorbed weapon damage (carried on Damage.flag / attack_type).
+	BF_KYRIEBLOCK	= 0x8000,
 };
 
 /// Battle check target [Skotlex]
@@ -123,7 +126,7 @@ int64 battle_calc_gvg_damage(struct block_list *src,struct block_list *bl,int64 
 int64 battle_calc_bg_damage(struct block_list *src,struct block_list *bl,int64 damage,uint16 skill_id,int32 flag);
 int64 battle_calc_pk_damage(block_list &src, block_list &bl, int64 damage, uint16 skill_id, int32 flag);
 
-int32 battle_damage(struct block_list *src, struct block_list *target, int64 damage, int16 div_, uint16 skill_lv, uint16 skill_id, enum damage_lv dmg_lv, uint16 attack_type, bool additional_effects, t_tick tick, bool isspdamage, bool is_norm_attacked = false);
+int32 battle_damage(struct block_list *src, struct block_list *target, int64 damage, int16 div_, uint16 skill_lv, uint16 skill_id, enum damage_lv dmg_lv, int32 attack_type, bool additional_effects, t_tick tick, bool isspdamage, bool is_norm_attacked = false);
 int32 battle_delay_damage (t_tick tick, int32 amotion, struct block_list *src, struct block_list *target, int32 attack_type, uint16 skill_id, uint16 skill_lv, int64 damage, enum damage_lv dmg_lv, int16 div_, bool additional_effects, bool isspdamage, bool is_norm_attacked = false);
 int32 battle_fix_damage(struct block_list* src, struct block_list* target, int64 damage, int16 div_, uint16 skill_id);
 
@@ -131,6 +134,12 @@ int32 battle_calc_chorusbonus(map_session_data *sd);
 
 // Summary normal attack treatment (basic attack)
 enum damage_lv battle_weapon_attack( struct block_list *bl,struct block_list *target,t_tick tick,int32 flag);
+
+struct status_change_entry;
+/// True if the linked skill unit group (val3) still has at least one alive barrier cell; val3==0 means unknown (tile check only).
+bool battle_neutralbarrier_group_has_alive( status_change_entry *sce );
+/// Ranged immunity from NB: owner (MASTER) = any alive group cell; everyone else = must stand on a live barrier tile.
+bool battle_neutral_barrier_ranged_immunity_active( block_list *bl );
 
 // Accessors
 struct block_list* battle_get_master(struct block_list *src);
@@ -394,6 +403,7 @@ struct Battle_Config
 	int32 devotion_level_difference;
 	int32 player_skill_partner_check;
 	int32 invite_request_check;
+	int32 player_trade; // 0 = disable player-to-player trade window; 1 = allow
 	int32 skill_removetrap_type;
 	int32 disp_experience;
 	int32 disp_zeny;
@@ -515,6 +525,8 @@ struct Battle_Config
 	int32 auction_maximumprice;
 	int32 homunculus_auto_vapor;	//Keep Homunculus from Vaporizing when master dies. [L0ne_W0lf]
 	int32 display_status_timers;	//Show or hide skill buff/delay timers in recent clients [Sara]
+	/// 0=off, 1=log START/END for SC_SLEEP, SC_DEEPSLEEP, SC_DEVOTION on PCs, 2=log every SC START/END on PCs + snapshot of all active SC
+	int32 status_change_debug;
 	int32 skill_add_heal_rate;	//skills that bHealPower has effect on [Inkfish]
 	int32 eq_single_target_reflectable;
 	int32 invincible_nodamage;
@@ -554,6 +566,7 @@ struct Battle_Config
 	int32 max_fourth_parameter;
 	int32 max_third_aspd;
 	int32 max_summoner_aspd;
+	int32 renewal_aspd_percent_ref; ///< RENEWAL_ASPD: "remaining" = max(ref - base_intermediate, 2) before % bonus (iRO wiki uses 195 for equip-only term; default 195)
 	int32 vcast_stat_scale;
 
 	int32 mvp_tomb_enabled;

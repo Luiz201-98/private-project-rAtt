@@ -2122,6 +2122,10 @@ bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, i
 	sd->status.body = cap_value(sd->status.body,MIN_BODY_STYLE,MAX_BODY_STYLE);
 
 	//Initializations to null/0 unneeded since map_session_data was filled with 0 upon allocation.
+	sd->neutralbarrier_slide_anchor_x = -1;
+	sd->neutralbarrier_slide_anchor_y = -1;
+	sd->neutralbarrier_slide_rel_x = 0;
+	sd->neutralbarrier_slide_rel_y = 0;
 	sd->state.connect_new = 1;
 
 	sd->followtimer = INVALID_TIMER; // [MouseJstr]
@@ -6241,6 +6245,21 @@ bool pc_takeitem(map_session_data *sd,struct flooritem_data *fitem)
 	return true;
 }
 
+/// When Sleep/DeepSleep SC are gone but the client still shows Zzz (devotion/debuff desync), clear EFST; resend body option only if opt1 was sleep.
+static void pc_sleep_client_resync_if_clear(map_session_data *sd)
+{
+	nullpo_retv(sd);
+	if (sd->sc.getSCE(SC_SLEEP) || sd->sc.getSCE(SC_DEEPSLEEP))
+		return;
+	const bool had_opt_sleep = (sd->sc.opt1 == OPT1_SLEEP);
+	if (had_opt_sleep)
+		sd->sc.opt1 = OPT1_NONE;
+	clif_status_load(sd, static_cast<int32>(EFST_BODYSTATE_SLEEP), 0);
+	clif_status_load(sd, static_cast<int32>(EFST_DEEP_SLEEP), 0);
+	if (had_opt_sleep)
+		clif_changeoption(sd);
+}
+
 /*==========================================
  * Check if item is usable.
  * Return:
@@ -6260,20 +6279,23 @@ bool pc_isUseitem(map_session_data *sd,int32 n)
 	if( item == nullptr )
 		return false;
 	//Not consumable item
-	if( item->type != IT_HEALING && item->type != IT_USABLE && item->type != IT_CASH )
+	if( item->type != IT_HEALING && item->type != IT_USABLE && item->type != IT_CASH ) {
 		return false;
+	}
 	if (pc_has_permission(sd,PC_PERM_ITEM_UNCONDITIONAL))
 		return true;
 
 	struct map_data *mapdata = map_getmapdata(sd->m);
 
-	if(mapdata->getMapFlag(MF_NOITEMCONSUMPTION)) //consumable but mapflag prevent it
+	if(mapdata->getMapFlag(MF_NOITEMCONSUMPTION)) { //consumable but mapflag prevent it
 		return false;
+	}
 	//Prevent mass item usage. [Skotlex]
 	if( DIFF_TICK(sd->canuseitem_tick,gettick()) > 0 ||
 		(itemdb_group.item_exists(IG_CASH_FOOD, nameid) && DIFF_TICK(sd->canusecashfood_tick,gettick()) > 0)
-	)
+	) {
 		return false;
+	}
 
 	if( (item->item_usage.sitting) && (pc_issit(sd) == 1) && (pc_get_group_level(sd) < item->item_usage.override) ) {
 		clif_msg( *sd, MSI_CANT_USE_WHEN_SITDOWN );
@@ -6399,14 +6421,21 @@ bool pc_isUseitem(map_session_data *sd,int32 n)
 		return false;
 
 	//Not equipable by class. [Skotlex]
-	if (!pc_job_can_use_item(sd,item))
+	if (!pc_job_can_use_item(sd,item)) {
 		return false;
+	}
 	
-	if (sd->sc.cant.consume)
-		return false;
+	// cant.consume blocks e.g. Crystalize (NoConsumeItem). Allow consumables only in Sleep (or opt1 sleep desync).
+	if (sd->sc.cant.consume) {
+		const bool sleepish = sd->sc.getSCE(SC_SLEEP) || sd->sc.opt1 == OPT1_SLEEP;
+		if (!sleepish) {
+			return false;
+		}
+	}
 	
-	if (!pc_isItemClass(sd,item))
+	if (!pc_isItemClass(sd,item)) {
 		return false;
+	}
 
 	//Dead Branch items
 	if( item->flag.dead_branch )
@@ -6454,14 +6483,30 @@ int32 pc_useitem(map_session_data *sd,int32 n)
 	if (item.nameid == 0 || item.amount <= 0)
 		return 0;
 
-	if( !pc_isUseitem(sd,n) )
+	if( !pc_isUseitem(sd,n) ) {
 		return 0;
+	}
 
 	// Store information for later use before it is lost (via pc_delitem) [Paradox924X]
 	nameid = id->nameid;
 
-	if (nameid != ITEMID_NAUTHIZ && sd->sc.opt1 > 0 && sd->sc.opt1 != OPT1_STONEWAIT && sd->sc.opt1 != OPT1_BURNING)
-		return 0;
+	// Stuck sleep desync: no Sleep SC but client may still show Zzz / block UI until EFST + option refresh (like invisibility).
+	pc_sleep_client_resync_if_clear(sd);
+
+	// Block most body states from using items. SC_SLEEP pode existir com opt1 já limpo (desync); opt1 pode ser outro valor no servidor mas ícone Zzz no cliente.
+	if( nameid != ITEMID_NAUTHIZ && sd->sc.opt1 > 0 && sd->sc.opt1 != OPT1_STONEWAIT && sd->sc.opt1 != OPT1_BURNING) {
+		if( sd->sc.getSCE(SC_SLEEP) ) {
+			if( id->type != IT_HEALING && id->type != IT_USABLE && id->type != IT_CASH ) {
+				return 0;
+			}
+		} else if( sd->sc.opt1 == OPT1_SLEEP ) {
+			if( id->type != IT_HEALING && id->type != IT_USABLE && id->type != IT_CASH ) {
+				return 0;
+			}
+		} else {
+			return 0;
+		}
+	}
 
 	/* Items with delayed consume are not meant to work while in mounts except reins of mount(12622) */
 	if( id->flag.delay_consume > 0 ) {
@@ -6522,6 +6567,18 @@ int32 pc_useitem(map_session_data *sd,int32 n)
 
 	run_script(script,0,sd->id,fake_nd->id);
 	potion_flag = 0;
+	// Sleep (SC_SLEEP) has RemoveOnDamaged; consumables don't. Wake SC_SLEEP on pot; if stacked with Deep Sleep bug, remove both.
+	{
+		const bool had_sleep = sd->sc.getSCE(SC_SLEEP) != nullptr;
+		const bool had_deepsleep = sd->sc.getSCE(SC_DEEPSLEEP) != nullptr;
+		if (had_sleep)
+			status_change_end(sd, SC_SLEEP);
+		if (had_deepsleep && had_sleep)
+			status_change_end(sd, SC_DEEPSLEEP);
+	}
+	// Ensure battle stats (ASPD, etc.) and client packets refresh after item scripts
+	// (nested status_calc from sc_start may not always diff against b_status for SP_* updates).
+	status_calc_pc(sd, SCO_FORCE);
 	return 1;
 }
 
@@ -9873,6 +9930,22 @@ int32 pc_dead(map_session_data *sd,struct block_list *src)
 	}
 
 	pc_setdead(sd);
+
+	// Remove consumable-style buffs from the training Potadora on death.
+	status_change_end(sd, SC_SAVAGE_STEAK);
+	status_change_end(sd, SC_DROCERA_HERB_STEAMED);
+	status_change_end(sd, SC_MINOR_BBQ);
+	status_change_end(sd, SC_COCKTAIL_WARG_BLOOD);
+	status_change_end(sd, SC_SIROMA_ICE_TEA);
+	status_change_end(sd, SC_PUTTI_TAILS_NOODLES);
+	status_change_end(sd, SC_VITATA_500);
+	status_change_end(sd, SC_PROMOTE_HEALTH_RESERCH);
+	status_change_end(sd, SC_ENERGY_DRINK_RESERCH);
+	status_change_end(sd, SC_EXTRACT_SALAMINE_JUICE);
+	status_change_end(sd, SC_ARMOR_ELEMENT_FIRE);
+	status_change_end(sd, SC_ARMOR_ELEMENT_WATER);
+	status_change_end(sd, SC_ARMOR_ELEMENT_EARTH);
+	status_change_end(sd, SC_ARMOR_ELEMENT_WIND);
 
 	clif_party_dead( *sd );
 

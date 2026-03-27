@@ -1,0 +1,256 @@
+///=============================================================================
+/// Arena NightFall 7x7 BG - Motor principal (mapa 2025arena3)
+///=============================================================================
+
+-	script	ArenaNightFall_BG	-1,{
+	end;
+
+OnInit:
+	setmapflag "2025arena3", mf_battleground;
+	setmapflag "2025arena3", mf_noreturn;
+	end;
+
+OnBlueQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+	end;
+
+OnBlueDie:
+	if ($@arenaNightFallBG == 2) {
+		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		bg_updatescore "2025arena3",.Blue_Count,.Red_Count;
+		if (.Blue_Count < 1)
+			donpcevent "ArenaNightFall_BG::OnRedWin";
+	}
+	end;
+
+OnRedQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+	end;
+
+OnRedDie:
+	if ($@arenaNightFallBG == 2) {
+		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		bg_updatescore "2025arena3",.Blue_Count,.Red_Count;
+		if (.Red_Count < 1)
+			donpcevent "ArenaNightFall_BG::OnBlueWin";
+	}
+	end;
+
+OnStart:
+	announce "[Arena NightFall] Dois times entraram na Arena NightFall.",bc_yellow;
+	set $@arenaNightFallBG_Victory, 0;
+	bg_warp $@arenaNightFallBG_id1,"2025arena3",158,101;
+	bg_warp $@arenaNightFallBG_id2,"2025arena3",41,100;
+	donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena3";
+
+	sleep 100;
+	set .Blue_Count, bg_get_data($@arenaNightFallBG_id1, 0);
+	set .Red_Count,  bg_get_data($@arenaNightFallBG_id2, 0);
+	bg_updatescore "2025arena3",.Blue_Count,.Red_Count;
+
+	query_sql("INSERT INTO arena_nightfall_matches (started_at, map_name) VALUES (NOW(), '2025arena3')");
+	query_sql("SELECT LAST_INSERT_ID()", $arenaNightFall_match_id);
+
+	getmapunits BL_PC, "2025arena3", .@uids;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+		if (!attachrid(.@uids[.@i])) continue;
+
+		.@cid    = getcharid(0);
+		.@aid    = getcharid(3);
+		.@gid    = getcharid(2);
+		.@bgid   = getcharid(4);
+		.@class  = readparam(Class);
+		.@name$  = escape_sql(strcharinfo(0));
+
+		if (.@bgid == $@arenaNightFallBG_id1)
+			.@team = 1;
+		else if (.@bgid == $@arenaNightFallBG_id2)
+			.@team = 2;
+		else
+			continue;
+
+		query_sql(
+			"INSERT INTO arena_nightfall_match_players " +
+			"(match_id,char_id,char_name,account_id,guild_id,team,class_id) VALUES ("+
+			$arenaNightFall_match_id+","+.@cid+",'"+.@name$+"',"+.@aid+","+.@gid+","+.@team+","+.@class+")"
+		);
+
+		setd "#ARENANIGHTFALL_DAMAGE_DONE", 0;
+		setd "#ARENANIGHTFALL_DAMAGE_TAKEN", 0;
+		setd "#ARENANIGHTFALL_APM", 0;
+	}
+	detachrid;
+	initnpctimer;
+	end;
+
+OnTimer1000:   mapannounce "2025arena3","A batalha comecara em 25 segundos!",bc_yellow; end;
+OnTimer2000:   mapannounce "2025arena3","A batalha comecara em 24 segundos!",bc_yellow; end;
+OnTimer3000:   mapannounce "2025arena3","A batalha comecara em 23 segundos!",bc_yellow; end;
+OnTimer4000:   mapannounce "2025arena3","A batalha comecara em 22 segundos!",bc_yellow; end;
+OnTimer5000:   mapannounce "2025arena3","A batalha comecara em 21 segundos!",bc_yellow; end;
+OnTimer6000:   mapannounce "2025arena3","A batalha comecara em 20 segundos!",bc_yellow; end;
+OnTimer7000:   mapannounce "2025arena3","A batalha comecara em 19 segundos!",bc_yellow; end;
+OnTimer8000:   mapannounce "2025arena3","A batalha comecara em 18 segundos!",bc_yellow; end;
+OnTimer9000:   mapannounce "2025arena3","A batalha comecara em 17 segundos!",bc_yellow; end;
+OnTimer10000:  mapannounce "2025arena3","A batalha comecara em 16 segundos!",bc_yellow; end;
+OnTimer11000:  mapannounce "2025arena3","A batalha comecara em 15 segundos!",bc_yellow; end;
+OnTimer12000:  mapannounce "2025arena3","A batalha comecara em 14 segundos!",bc_yellow; end;
+OnTimer13000:  mapannounce "2025arena3","A batalha comecara em 13 segundos!",bc_yellow; end;
+OnTimer14000:  mapannounce "2025arena3","A batalha comecara em 12 segundos!",bc_yellow; end;
+OnTimer15000:  mapannounce "2025arena3","A batalha comecara em 11 segundos!",bc_yellow; end;
+OnTimer16000:  mapannounce "2025arena3","A batalha comecara em 10 segundos!",bc_yellow; end;
+OnTimer17000:  mapannounce "2025arena3","A batalha comecara em 9 segundos!",bc_yellow; end;
+OnTimer18000:  mapannounce "2025arena3","A batalha comecara em 8 segundos!",bc_yellow; end;
+OnTimer19000:  mapannounce "2025arena3","A batalha comecara em 7 segundos!",bc_yellow; end;
+OnTimer20000:  mapannounce "2025arena3","A batalha comecara em 6 segundos!",bc_yellow; end;
+OnTimer21000:  mapannounce "2025arena3","A batalha comecara em 5 segundos!",bc_yellow; end;
+OnTimer22000:  mapannounce "2025arena3","A batalha comecara em 4 segundos!",bc_yellow; end;
+OnTimer23000:  mapannounce "2025arena3","A batalha comecara em 3 segundos!",bc_yellow; end;
+OnTimer24000:  mapannounce "2025arena3","A batalha comecara em 2 segundos!",bc_yellow; end;
+OnTimer24500:  mapannounce "2025arena3","A batalha comecara em 1 segundo!",bc_yellow; end;
+
+OnTimer25000:
+	set $@arenaNightFallBG, 2;
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3";
+	mapannounce "2025arena3","[Arena NightFall] A batalha comecou! Boa sorte aos dois times!",bc_yellow;
+	end;
+
+OnTimer330000:
+	mapannounce "2025arena3","[Arena NightFall] A batalha terminara em 30 segundos!",bc_yellow;
+	end;
+
+OnTimer360000:
+	if (.Red_Count > .Blue_Count)
+		donpcevent "ArenaNightFall_BG::OnRedWin";
+	else if (.Red_Count < .Blue_Count)
+		donpcevent "ArenaNightFall_BG::OnBlueWin";
+	else {
+		set $@arenaNightFallBG, 3;
+		set $@arenaNightFallBG_Victory, 3;
+		stopnpctimer;
+		sleep 2000;
+		announce "[Arena NightFall] As duas equipes empataram!",bc_yellow;
+		query_sql(
+			"UPDATE arena_nightfall_matches SET ended_at = NOW(), winner_team = 0, end_reason = 3, " +
+			"blue_alive_end = "+.Blue_Count+", red_alive_end = "+.Red_Count+
+			" WHERE id = "+$arenaNightFall_match_id
+		);
+		donpcevent "ArenaNightFall_BG::OnStop";
+	}
+	end;
+
+OnBlueWin:
+	set $@arenaNightFallBG, 3;
+	set $@arenaNightFallBG_Victory, 1;
+	query_sql(
+		"UPDATE arena_nightfall_matches SET ended_at = NOW(), winner_team = 1, end_reason = 1, " +
+		"blue_alive_end = "+.Blue_Count+", red_alive_end = "+.Red_Count+
+		" WHERE id = "+$arenaNightFall_match_id
+	);
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena NightFall] Time 1 venceu!",bc_all,0x00bfff;
+	sleep 3000;
+	donpcevent "ArenaNightFall_BG::OnStop";
+	end;
+
+OnRedWin:
+	set $@arenaNightFallBG, 3;
+	set $@arenaNightFallBG_Victory, 2;
+	query_sql(
+		"UPDATE arena_nightfall_matches SET ended_at = NOW(), winner_team = 2, end_reason = 1, " +
+		"blue_alive_end = "+.Blue_Count+", red_alive_end = "+.Red_Count+
+		" WHERE id = "+$arenaNightFall_match_id
+	);
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena NightFall] Time 2 venceu!",bc_all,0xff6347;
+	sleep 3000;
+	donpcevent "ArenaNightFall_BG::OnStop";
+	end;
+
+OnStop:
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3";
+	mapwarp "2025arena3","turbo_room",100,100;
+	donpcevent "ArenaNightFall_BG::OnReset";
+	end;
+
+OnReset:
+	stopnpctimer;
+	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3";
+	set .Blue_Count, 0;
+	set .Red_Count, 0;
+	set .Blue_Score, 0;
+	set .Red_Score, 0;
+	set $@arenaNightFallBG_Victory, 0;
+	set $@arenaNightFall_in_match, 0;
+	if ($@arenaNightFallBG_id1) { bg_destroy $@arenaNightFallBG_id1; set $@arenaNightFallBG_id1, 0; }
+	if ($@arenaNightFallBG_id2) { bg_destroy $@arenaNightFallBG_id2; set $@arenaNightFallBG_id2, 0; }
+	bg_updatescore "2025arena3",0,0;
+	set $@arenaNightFallBG, 0;
+	end;
+}
+
+///=============================================================================
+/// Waitingrooms Arena NightFall
+///=============================================================================
+
+turbo_room,135,91,5	script	Arena NightFall Azul::ArenaNightFall_WR_Blue	417,{
+	end;
+OnInit:
+	waitingroom "Arena NightFall - Azul",3,"ArenaNightFall_Wait_BG::OnBlueJoin",1;
+	end;
+OnEnterBG:
+	set $@arenaNightFallBG_id1, waitingroom2bg("2025arena3",158,101,"ArenaNightFall_BG::OnBlueQuit","ArenaNightFall_BG::OnBlueDie");
+	end;
+}
+
+turbo_room,64,91,5	script	Arena NightFall Vermelho::ArenaNightFall_WR_Red	414,{
+	end;
+OnInit:
+	waitingroom "Arena NightFall - Vermelho",3,"ArenaNightFall_Wait_BG::OnRedJoin",1;
+	end;
+OnEnterBG:
+	set $@arenaNightFallBG_id2, waitingroom2bg("2025arena3",41,100,"ArenaNightFall_BG::OnRedQuit","ArenaNightFall_BG::OnRedDie");
+	end;
+}
+
+-	script	ArenaNightFall_Wait_BG	-1,{
+	end;
+OnInit:
+	initnpctimer;
+	set .last_blue, -1;
+	set .last_red, -1;
+	end;
+OnBlueJoin:
+OnRedJoin:
+	donpcevent "ArenaNightFall_Wait_BG::OnReadyCheck";
+	end;
+OnTimer1000:
+	donpcevent "ArenaNightFall_Wait_BG::OnReadyCheck";
+	initnpctimer;
+	end;
+OnReadyCheck:
+	if ($@arenaNightFallBG)
+		end;
+	set .@blue, getwaitingroomstate(0,"ArenaNightFall_WR_Blue");
+	set .@red,  getwaitingroomstate(0,"ArenaNightFall_WR_Red");
+	if (.@blue != .last_blue || .@red != .last_red) {
+		// Anuncia por area para cada lado (vermelho esquerdo / azul direito)
+		areaannounce "turbo_room",0,70,99,120,"[Arena NightFall] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
+		areaannounce "turbo_room",100,70,199,120,"[Arena NightFall] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
+		set .last_blue, .@blue;
+		set .last_red, .@red;
+	}
+	if ((.@blue < 2) || (.@red < 2))
+		end;
+	set $@arenaNightFallBG, 1;
+	donpcevent "ArenaNightFall_WR_Blue::OnEnterBG";
+	donpcevent "ArenaNightFall_WR_Red::OnEnterBG";
+	donpcevent "ArenaNightFall_BG::OnStart";
+	end;
+}

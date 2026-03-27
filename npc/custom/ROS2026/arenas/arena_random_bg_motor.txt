@@ -1,0 +1,316 @@
+///=============================================================================
+/// Arena Aleatoria 7x7 BG - Sorteia entre as 6 arenas ROS2026
+///=============================================================================
+
+-	script	ArenaRandom_BG	-1,{
+	end;
+
+OnInit:
+	set $@arenaRandomBG, 0;
+	set $@arenaRandomBG_Victory, 0;
+	end;
+
+OnBlueQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+	end;
+
+OnBlueDie:
+	if ($@arenaRandomBG == 2) {
+		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+		if (.Blue_Count < 1)
+			donpcevent "ArenaRandom_BG::OnRedWin";
+	}
+	end;
+
+OnRedQuit:
+	set BG_Delay_Tick, gettimetick(2) + 2000;
+	end;
+
+OnRedDie:
+	if ($@arenaRandomBG == 2) {
+		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+		if (.Red_Count < 1)
+			donpcevent "ArenaRandom_BG::OnBlueWin";
+	}
+	end;
+
+OnStart:
+	announce "[Arena Aleatoria] Arena sorteada: "+$@arenaRandomName$+".",bc_yellow;
+	set $@arenaRandomBG_Victory, 0;
+	bg_warp $@arenaRandomBG_id1,$@arenaRandomMap$,$@arenaRandomBlueX,$@arenaRandomBlueY;
+	bg_warp $@arenaRandomBG_id2,$@arenaRandomMap$,$@arenaRandomRedX,$@arenaRandomRedY;
+	callsub S_CloseWalls;
+
+	sleep 100;
+	set .Blue_Count, bg_get_data($@arenaRandomBG_id1, 0);
+	set .Red_Count,  bg_get_data($@arenaRandomBG_id2, 0);
+	bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+
+	set .Countdown, 24;
+	set .Elapsed, 0;
+	mapannounce $@arenaRandomMap$,"A batalha comecara em 25 segundos!",bc_yellow;
+	initnpctimer;
+	end;
+
+OnTimer1000:
+	if ($@arenaRandomBG == 1) {
+		if (.Countdown > 0) {
+			mapannounce $@arenaRandomMap$,"A batalha comecara em "+.Countdown+" segundos!",bc_yellow;
+			set .Countdown, .Countdown - 1;
+		} else {
+			set $@arenaRandomBG, 2;
+			callsub S_OpenWalls;
+			mapannounce $@arenaRandomMap$,"["+ $@arenaRandomName$ +"] A batalha comecou! Boa sorte aos dois times!",bc_yellow;
+		}
+		initnpctimer;
+		end;
+	}
+
+	if ($@arenaRandomBG == 2) {
+		set .Elapsed, .Elapsed + 1;
+
+		if (.Elapsed == 330)
+			mapannounce $@arenaRandomMap$,"["+ $@arenaRandomName$ +"] A batalha terminara em 30 segundos!",bc_yellow;
+
+		if (.Elapsed >= 360) {
+			if (.Red_Count > .Blue_Count)
+				donpcevent "ArenaRandom_BG::OnRedWin";
+			else if (.Red_Count < .Blue_Count)
+				donpcevent "ArenaRandom_BG::OnBlueWin";
+			else
+				donpcevent "ArenaRandom_BG::OnDraw";
+			end;
+		}
+	}
+
+	initnpctimer;
+	end;
+
+OnDraw:
+	set $@arenaRandomBG, 3;
+	set $@arenaRandomBG_Victory, 3;
+	stopnpctimer;
+	sleep 2000;
+	announce "[Arena Aleatoria] As duas equipes empataram em "+$@arenaRandomName$+"!",bc_yellow;
+	donpcevent "ArenaRandom_BG::OnStop";
+	end;
+
+OnBlueWin:
+	set $@arenaRandomBG, 3;
+	set $@arenaRandomBG_Victory, 1;
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena Aleatoria] Time Azul venceu em "+$@arenaRandomName$+"!",bc_all,0x00bfff;
+	sleep 3000;
+	donpcevent "ArenaRandom_BG::OnStop";
+	end;
+
+OnRedWin:
+	set $@arenaRandomBG, 3;
+	set $@arenaRandomBG_Victory, 2;
+	stopnpctimer;
+	sleep 1000;
+	announce "[Arena Aleatoria] Time Vermelho venceu em "+$@arenaRandomName$+"!",bc_all,0xff6347;
+	sleep 3000;
+	donpcevent "ArenaRandom_BG::OnStop";
+	end;
+
+OnStop:
+	callsub S_OpenWalls;
+	mapwarp $@arenaRandomMap$,"turbo_room",100,100;
+	donpcevent "ArenaRandom_BG::OnReset";
+	end;
+
+OnReset:
+	stopnpctimer;
+	callsub S_OpenWalls;
+	set .Blue_Count, 0;
+	set .Red_Count, 0;
+	set .Blue_Score, 0;
+	set .Red_Score, 0;
+	set .Countdown, 0;
+	set .Elapsed, 0;
+	set $@arenaRandomBG_Victory, 0;
+
+	if ($@arenaRandomMap$ != "")
+		bg_updatescore $@arenaRandomMap$,0,0;
+
+	if ($@arenaRandomBG_id1) { bg_destroy $@arenaRandomBG_id1; set $@arenaRandomBG_id1, 0; }
+	if ($@arenaRandomBG_id2) { bg_destroy $@arenaRandomBG_id2; set $@arenaRandomBG_id2, 0; }
+
+	set $@arenaRandomIdx, -1;
+	set $@arenaRandomMap$, "";
+	set $@arenaRandomName$, "";
+	set $@arenaRandomBlueX, 0;
+	set $@arenaRandomBlueY, 0;
+	set $@arenaRandomRedX, 0;
+	set $@arenaRandomRedY, 0;
+	set $@arenaRandomBG, 0;
+	end;
+
+S_CloseWalls:
+	switch ($@arenaRandomIdx) {
+		case 0: donpcevent "ArenaBG_Wall_Controller::OnClose_25ros03_01"; break;
+		case 1: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena1"; break;
+		case 2: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena2"; break;
+		case 3: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena3"; break;
+		case 4: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena4"; break;
+		case 5: donpcevent "ArenaBG_Wall_Controller::OnClose_2025arena5"; break;
+	}
+	return;
+
+S_OpenWalls:
+	switch ($@arenaRandomIdx) {
+		case 0: donpcevent "ArenaBG_Wall_Controller::OnOpen_25ros03_01"; break;
+		case 1: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena1"; break;
+		case 2: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2"; break;
+		case 3: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena3"; break;
+		case 4: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena4"; break;
+		case 5: donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena5"; break;
+	}
+	return;
+}
+
+turbo_room,135,85,5	script	Arena Aleatoria Azul::ArenaRandom_WR_Blue	417,{
+	end;
+
+OnInit:
+	waitingroom "Arena Aleatoria - Azul",3,"ArenaRandom_Wait_BG::OnBlueJoin",1;
+	end;
+
+OnEnterBG:
+	switch ($@arenaRandomIdx) {
+		case 0: set $@arenaRandomBG_id1, waitingroom2bg("25ros03_01",46,80,"ArenaRandom_BG::OnBlueQuit","ArenaRandom_BG::OnBlueDie"); break;
+		case 1: set $@arenaRandomBG_id1, waitingroom2bg("2025arena1",234,156,"ArenaRandom_BG::OnBlueQuit","ArenaRandom_BG::OnBlueDie"); break;
+		case 2: set $@arenaRandomBG_id1, waitingroom2bg("2025arena2",156,80,"ArenaRandom_BG::OnBlueQuit","ArenaRandom_BG::OnBlueDie"); break;
+		case 3: set $@arenaRandomBG_id1, waitingroom2bg("2025arena3",158,101,"ArenaRandom_BG::OnBlueQuit","ArenaRandom_BG::OnBlueDie"); break;
+		case 4: set $@arenaRandomBG_id1, waitingroom2bg("2025arena4",249,152,"ArenaRandom_BG::OnBlueQuit","ArenaRandom_BG::OnBlueDie"); break;
+		case 5: set $@arenaRandomBG_id1, waitingroom2bg("2025arena5",161,80,"ArenaRandom_BG::OnBlueQuit","ArenaRandom_BG::OnBlueDie"); break;
+	}
+	end;
+}
+
+turbo_room,64,85,5	script	Arena Aleatoria Vermelho::ArenaRandom_WR_Red	414,{
+	end;
+
+OnInit:
+	waitingroom "Arena Aleatoria - Vermelho",3,"ArenaRandom_Wait_BG::OnRedJoin",1;
+	end;
+
+OnEnterBG:
+	switch ($@arenaRandomIdx) {
+		case 0: set $@arenaRandomBG_id2, waitingroom2bg("25ros03_01",152,80,"ArenaRandom_BG::OnRedQuit","ArenaRandom_BG::OnRedDie"); break;
+		case 1: set $@arenaRandomBG_id2, waitingroom2bg("2025arena1",118,157,"ArenaRandom_BG::OnRedQuit","ArenaRandom_BG::OnRedDie"); break;
+		case 2: set $@arenaRandomBG_id2, waitingroom2bg("2025arena2",46,80,"ArenaRandom_BG::OnRedQuit","ArenaRandom_BG::OnRedDie"); break;
+		case 3: set $@arenaRandomBG_id2, waitingroom2bg("2025arena3",41,100,"ArenaRandom_BG::OnRedQuit","ArenaRandom_BG::OnRedDie"); break;
+		case 4: set $@arenaRandomBG_id2, waitingroom2bg("2025arena4",105,152,"ArenaRandom_BG::OnRedQuit","ArenaRandom_BG::OnRedDie"); break;
+		case 5: set $@arenaRandomBG_id2, waitingroom2bg("2025arena5",33,80,"ArenaRandom_BG::OnRedQuit","ArenaRandom_BG::OnRedDie"); break;
+	}
+	end;
+}
+
+-	script	ArenaRandom_Wait_BG	-1,{
+	end;
+
+OnInit:
+	initnpctimer;
+	set .last_blue, -1;
+	set .last_red, -1;
+	set .busy_notice_tick, 0;
+
+	setarray .MapName$[0],"25ros03_01","2025arena1","2025arena2","2025arena3","2025arena4","2025arena5";
+	setarray .ArenaName$[0],"Arena Toy Factory","Arena GlastHeim","Arena NifHeim","Arena NightFall","Arena Ayothaya","Somatology Laboratory";
+	setarray .BlueX[0],46,234,156,158,249,161;
+	setarray .BlueY[0],80,156,80,101,152,80;
+	setarray .RedX[0],152,118,46,41,105,33;
+	setarray .RedY[0],80,157,80,100,152,80;
+	end;
+
+OnBlueJoin:
+OnRedJoin:
+	donpcevent "ArenaRandom_Wait_BG::OnReadyCheck";
+	end;
+
+OnTimer1000:
+	donpcevent "ArenaRandom_Wait_BG::OnReadyCheck";
+	initnpctimer;
+	end;
+
+OnReadyCheck:
+	if ($@arenaRandomBG)
+		end;
+
+	set .@blue, getwaitingroomstate(0,"ArenaRandom_WR_Blue");
+	set .@red,  getwaitingroomstate(0,"ArenaRandom_WR_Red");
+
+	if (.@blue != .last_blue || .@red != .last_red) {
+		areaannounce "turbo_room",0,70,99,120,"[Arena Aleatoria] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
+		areaannounce "turbo_room",100,70,199,120,"[Arena Aleatoria] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0x00bfff;
+		set .last_blue, .@blue;
+		set .last_red, .@red;
+	}
+
+	if ((.@blue < 2) || (.@red < 2))
+		end;
+
+	deletearray .@pool[0], getarraysize(.@pool);
+	for (.@i = 0; .@i < getarraysize(.MapName$); .@i++) {
+		if (callsub(S_IsArenaAvailable, .@i)) {
+			.@n = getarraysize(.@pool);
+			.@pool[.@n] = .@i;
+		}
+	}
+
+	if (!getarraysize(.@pool)) {
+		if (gettimetick(2) >= .busy_notice_tick) {
+			areaannounce "turbo_room",0,70,199,120,"[Arena Aleatoria] Todas as arenas estao ocupadas no momento. Aguarde uma arena ficar livre.",bc_map,0xffff00;
+			set .busy_notice_tick, gettimetick(2) + 5;
+		}
+		end;
+	}
+
+	.@pick = .@pool[rand(getarraysize(.@pool))];
+	set $@arenaRandomIdx, .@pick;
+	set $@arenaRandomMap$,  .MapName$[.@pick];
+	set $@arenaRandomName$, .ArenaName$[.@pick];
+	set $@arenaRandomBlueX, .BlueX[.@pick];
+	set $@arenaRandomBlueY, .BlueY[.@pick];
+	set $@arenaRandomRedX,  .RedX[.@pick];
+	set $@arenaRandomRedY,  .RedY[.@pick];
+	set $@arenaRandomBG, 1;
+
+	areaannounce "turbo_room",0,70,199,120,"[Arena Aleatoria] Arena sorteada: "+$@arenaRandomName$+"!",bc_map,0xffff00;
+	donpcevent "ArenaRandom_WR_Blue::OnEnterBG";
+	donpcevent "ArenaRandom_WR_Red::OnEnterBG";
+	donpcevent "ArenaRandom_BG::OnStart";
+	end;
+
+S_IsArenaAvailable:
+	switch (getarg(0)) {
+		case 0:
+			if (!$@toy7BG && getmapusers("25ros03_01") == 0) return 1;
+			break;
+		case 1:
+			if (!$@arena2025BG && getmapusers("2025arena1") == 0) return 1;
+			break;
+		case 2:
+			if (!$@arenaNifBG && getmapusers("2025arena2") == 0) return 1;
+			break;
+		case 3:
+			if (!$@arenaNightFallBG && getmapusers("2025arena3") == 0) return 1;
+			break;
+		case 4:
+			if (!$@arenaAyothayaBG && getmapusers("2025arena4") == 0) return 1;
+			break;
+		case 5:
+			if (!$@arenaSomatologyBG && getmapusers("2025arena5") == 0) return 1;
+			break;
+	}
+	return 0;
+}

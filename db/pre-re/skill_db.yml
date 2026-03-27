@@ -3941,6 +3941,7 @@ Body:
       Splash: true
     Flags:
       AllowOnMado: true
+      IgnoreHovering: true
     Hit: Single
     HitCount: 1
     SplashArea: -1
@@ -8491,7 +8492,7 @@ Body:
       Splash: true
     Hit: Single
     HitCount: 1
-    SplashArea: -1
+    SplashArea: 15
     AfterCastActDelay: 4000
     Duration1: 15000
     Duration2: 12000
@@ -19701,7 +19702,7 @@ Body:
     Description: Clearance
     MaxLevel: 5
     Type: Magic
-    TargetType: Attack
+    TargetType: Support
     DamageFlags:
       NoDamage: true
     Flags:
@@ -20970,7 +20971,6 @@ Body:
     Flags:
       TargetTrap: true
       AllowOnMado: true
-      IgnoreAutoGuard: true
       IgnoreCicada: true
     Hit: Single
     HitCount: 1
@@ -24670,6 +24670,8 @@ Body:
     TargetType: Ground
     DamageFlags:
       NoDamage: true
+    Flags:
+      IgnoreLandProtector: true
     Range: 9
     Hit: Single
     HitCount: 1
@@ -30101,6 +30103,7 @@ Body:
       Interval: 1000
       Flag:
         NoReiteration: true
+        HiddenTrap: true
   - Id: 5011
     Name: AB_OFFERTORIUM
     Description: Offertorium

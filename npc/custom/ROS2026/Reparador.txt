@@ -3,7 +3,7 @@
 //============================================================
 turbo_room,86,139,4	script	Refino Seguro	813,{
 
-	// Refino autom√°tico seguro (mesma l√≥gica que estava na curandeira)
+	// Refino autom·tico seguro (mesma lÛgica que estava na curandeira)
 	setarray .@safe_weapon[0], 0, 7, 6, 5, 4;        
 	.@safe_armor = 4;        
 	setarray .@slots[0], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R, EQI_HEAD_MID, EQI_HEAD_LOW;        

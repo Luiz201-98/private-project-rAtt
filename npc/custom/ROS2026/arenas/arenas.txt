@@ -1,16 +1,15 @@
-// NPC dentro de gon_test que confirma os líderes enviados pelo registro 7x7
-// e depois libera a arena escolhida (a primeira é a Toy Factory).
-// Coordenadas ajustadas para a posição original visível no mapa.
+// NPC dentro de gon_test que confirma os lideres enviados pelo registro 7x7
+// e monta times de Battleground (Azul / Vermelho) em 25ros03_01.
 gon_test,55,94,5	script	Arena 7x7	4_M_01,{
 	mes "[Arena 7x7]";
-	mes "Aqui come?a o duelo entre as guilds.";
-	mes "Voc? deve ter sido enviado pelo registro 7x7.";
+	mes "Aqui comeca o duelo entre as guilds.";
+	mes "Voce deve ter sido enviado pelo registro 7x7.";
 	next;
 
 	// Precisa estar em guild
 	if (!getcharid(2)) {
 		mes "[Arena 7x7]";
-		mes "Apenas l?deres de guild podem usar este NPC.";
+		mes "Apenas lideres de guild podem usar este NPC.";
 		close;
 	}
 
@@ -23,19 +22,19 @@ gon_test,55,94,5	script	Arena 7x7	4_M_01,{
 		set .@is_blue, 0;
 	} else {
 		mes "[Arena 7x7]";
-		mes "Voc? n?o foi marcado como participante do 7x7.";
+		mes "Voce nao foi marcado como participante do 7x7.";
 		mes "Use primeiro os NPCs de registro na sala 7x7.";
 		close;
 	}
 
 	mes "[Arena 7x7]";
-	mes "Voc? ? o l?der do Time " + .@side$ + ".";
-	mes "Quando os dois l?deres confirmarem aqui, ser?o enviados para a arena.";
+	mes "Voce e o lider do Time " + .@side$ + ".";
+	mes "Quando os dois lideres confirmarem aqui, serao enviados para a arena.";
 	next;
 
 	if (select("Confirmar minha entrada:Cancelar") == 2) {
 		mes "[Arena 7x7]";
-		mes "Confirma??o cancelada.";
+		mes "Confirmacao cancelada.";
 		close;
 	}
 
@@ -46,38 +45,84 @@ gon_test,55,94,5	script	Arena 7x7	4_M_01,{
 		set $@7x7_red_ready, getcharid(3);
 
 	mes "[Arena 7x7]";
-	mes "Confirma??o registrada. Aguardando o outro l?der...";
+	mes "Confirmacao registrada. Aguardando o outro lider...";
 	close2;
 
-	// Se os dois já confirmaram, enviamos as parties para a bat_room
-	// e, após 8 segundos, disparamos o motor principal Toy7_BG.
+	// Se os dois ja confirmaram, criamos os times BG e colocamos as parties
 	if ($@7x7_blue_ready && $@7x7_red_ready) {
-		if (!$7x7_in_match) {
-			set $7x7_in_match, 1;
+		set .@blue_aid, $@7x7_blue_ready;
+		set .@red_aid,  $@7x7_red_ready;
 
-			// Envia todos os membros das duas parties para a sala de espera (bat_room)
-			if ($toy7_team1_party) {
-				getpartymember $toy7_team1_party, 1;
-				getpartymember $toy7_team1_party, 2;
-				for (set .@i,0; .@i < $@partymembercount; set .@i,.@i+1) {
-					if (!isloggedin($@partymemberaid[.@i])) continue;
-					warpchar "bat_room",100,100,$@partymemberaid[.@i];
-				}
-			}
-			if ($toy7_team2_party) {
-				getpartymember $toy7_team2_party, 1;
-				getpartymember $toy7_team2_party, 2;
-				for (set .@j,0; .@j < $@partymembercount; set .@j,.@j+1) {
-					if (!isloggedin($@partymemberaid[.@j])) continue;
-					warpchar "bat_room",100,100,$@partymemberaid[.@j];
-				}
-			}
+		// Descobre party de cada lider
+		set .@blue_party, 0;
+		set .@red_party, 0;
 
-			// Aguarda 8 segundos na bat_room e então inicia a BG Toy Factory
-			donpcevent "Arena_BG::OnToy7StartAfterWait";
+		if (attachrid(.@blue_aid)) {
+			set .@blue_party, getcharid(1);
+			detachrid;
+		}
+		if (attachrid(.@red_aid)) {
+			set .@red_party, getcharid(1);
+			detachrid;
 		}
 
-		// Limpa flags de ready (a rodada já foi iniciada)
+		// Cria times de BG na 25ros03_01 (Azul esquerda, Vermelho direita)
+		set $@7x7_bg_id1, bg_create("25ros03_01",46,80,"","");   // Time Azul
+		set $@7x7_bg_id2, bg_create("25ros03_01",152,80,"","");  // Time Vermelho
+
+		// Garante que criaram
+		if (!$@7x7_bg_id1 || !$@7x7_bg_id2) {
+			mapannounce "gon_test","[Arena 7x7] Erro ao criar times de Battleground.",1,0xFF0000;
+			set $@7x7_blue_ready, 0;
+			set $@7x7_red_ready, 0;
+			end;
+		}
+
+		// Conta membros e salva vivos iniciais
+		if (.@blue_party) {
+			getpartymember .@blue_party, 1;
+			getpartymember .@blue_party, 2;
+			set $7x7_blue_alive, $@partymembercount;
+		} else
+			set $7x7_blue_alive, 1;
+
+		if (.@red_party) {
+			getpartymember .@red_party, 1;
+			getpartymember .@red_party, 2;
+			set $7x7_red_alive, $@partymembercount;
+		} else
+			set $7x7_red_alive, 1;
+
+		// Coloca a party Azul no time BG Azul
+		if (.@blue_party) {
+			getpartymember .@blue_party, 1;
+			getpartymember .@blue_party, 2;
+			for (set .@i,0; .@i < $@partymembercount; set .@i,.@i+1) {
+				if (!isloggedin($@partymemberaid[.@i])) continue;
+				bg_join $@7x7_bg_id1,"25ros03_01",46,80,$@partymembercid[.@i];
+			}
+		} else if (attachrid(.@blue_aid)) {
+			bg_join $@7x7_bg_id1,"25ros03_01",46,80,getcharid(0);
+			detachrid;
+		}
+
+		// Coloca a party Vermelha no time BG Vermelho
+		if (.@red_party) {
+			getpartymember .@red_party, 1;
+			getpartymember .@red_party, 2;
+			for (set .@j,0; .@j < $@partymembercount; set .@j,.@j+1) {
+				if (!isloggedin($@partymemberaid[.@j])) continue;
+				bg_join $@7x7_bg_id2,"25ros03_01",152,80,$@partymembercid[.@j];
+			}
+		} else if (attachrid(.@red_aid)) {
+			bg_join $@7x7_bg_id2,"25ros03_01",152,80,getcharid(0);
+			detachrid;
+		}
+
+		// Agora que estao na arena e em times BG, disparamos o motor
+		donpcevent "Arena_BG::OnInicio";
+
+		// Limpa flags de ready (a rodada ja comecou)
 		set $@7x7_blue_ready, 0;
 		set $@7x7_red_ready, 0;
 	}
@@ -88,14 +133,8 @@ gon_test,55,94,5	script	Arena 7x7	4_M_01,{
 -	script	Arena_BG	-1,{
 	end;
 
-OnToy7StartAfterWait:
-	// Espera 8 segundos com os times na bat_room antes de ir para a Toy Factory
-	sleep 8000;
-	donpcevent "Toy7_BG::OnStartFromLobby";
-	end;
-
 OnInicio:
-	// Mensagem geral de in?cio
+	// Mensagem geral de inicio
 	mapannounce "25ros03_01","Os dois times entraram na Arena de Batalha Toy Factory!", bc_yellow;
 
 	// Barreiras do Time Azul
@@ -110,7 +149,7 @@ OnInicio:
 	setwall "25ros03_01",139,80,1,4,0,"arena_wall_v3";
 	setwall "25ros03_01",139,81,1,4,0,"arena_wall_v4";
 
-	// Marca estado da arena (1 = prepara??o, 2 = em jogo)
+	// Marca estado da arena (1 = preparacao, 2 = em jogo)
 	set $@ArenaBG, 1;
 
 	// Zera placar visual (HUD vai mostrar jogadores vivos)
@@ -118,7 +157,7 @@ OnInicio:
 	set .Vermelho_Score, 0;
 
 	// Mostra HUD de quantos jogadores vivos tem em cada time
-	// (valores j? calculados antes em $7x7_blue_alive / $7x7_red_alive)
+	// (valores ja calculados antes em $7x7_blue_alive / $7x7_red_alive)
 	bg_updatescore "25ros03_01",$7x7_blue_alive,$7x7_red_alive;
 
 	// Inicia contador interno
@@ -127,31 +166,31 @@ OnInicio:
 
 // Contagem de 25 segundos dentro da arena antes de liberar as paredes
 OnTimer4000:
-	mapannounce "25ros03_01","A batalha come?ar? em 20 segundos!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecara em 20 segundos!", bc_yellow;
 	end;
 
 OnTimer20000:
-	mapannounce "25ros03_01","A batalha come?ar? em 5 segundos!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecara em 5 segundos!", bc_yellow;
 	end;
 
 OnTimer21000:
-	mapannounce "25ros03_01","A batalha come?ar? em 4 segundos!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecara em 4 segundos!", bc_yellow;
 	end;
 
 OnTimer22000:
-	mapannounce "25ros03_01","A batalha come?ar? em 3 segundos!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecara em 3 segundos!", bc_yellow;
 	end;
 
 OnTimer23000:
-	mapannounce "25ros03_01","A batalha come?ar? em 2 segundos!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecara em 2 segundos!", bc_yellow;
 	end;
 
 OnTimer24000:
-	mapannounce "25ros03_01","A batalha come?ar? em 1 segundo!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecara em 1 segundo!", bc_yellow;
 	end;
 
 OnTimer25000:
-	// Libera as barreiras e come?a o duelo
+	// Libera as barreiras e comeca o duelo
 	set $@ArenaBG, 2;
 	delwall "arena_wall_a1";
 	delwall "arena_wall_a2";
@@ -162,16 +201,16 @@ OnTimer25000:
 	delwall "arena_wall_v3";
 	delwall "arena_wall_v4";
 
-	mapannounce "25ros03_01","A batalha come?ou! Boa sorte aos dois times!", bc_yellow;
+	mapannounce "25ros03_01","A batalha comecou! Boa sorte aos dois times!", bc_yellow;
 	stopnpctimer;
 	end;
 }
 
-// Controle de mortes e vit?ria em 25ros03_01 (GVG 7x7)
+// Controle de mortes e vitoria em 25ros03_01 (GVG 7x7)
 -	script	Arena_Death_7x7	-1,{
 
 OnPCDieEvent:
-	// S? conta mortes dentro da arena
+	// So conta mortes dentro da arena
 	if (strcharinfo(3) != "25ros03_01")
 		end;
 
@@ -216,7 +255,7 @@ OnEncerrar:
 	// Teleporta todos de volta para turbo_room 100,100
 	mapwarp "25ros03_01","turbo_room",100,100;
 
-	// Reseta vari?veis globais
+	// Reseta variaveis globais
 	set $7x7_blue_alive, 0;
 	set $7x7_red_alive, 0;
 	set $7x7_blue_ready, 0;

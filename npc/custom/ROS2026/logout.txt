@@ -1,7 +1,6 @@
--	script	LOGIN	-1,{  
-OnPCLogoutEvent:  
-	if (strcharinfo(3) != "izlude")  
-		warp "izlude",127,138;  
-	end;  
-}  
-  
+-	script	LOGIN	-1,{
+OnPCLoginEvent:
+	if (strcharinfo(3) != "turbo_room")
+		warp "turbo_room",100,100;
+	end;
+}

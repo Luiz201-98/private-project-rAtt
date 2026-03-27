@@ -3,7 +3,7 @@ izlude,127,145,5	script	Teleporte Mercado	10210,{
 	mes "[Teleporte Mercado]";  
 	mes "Ir para o Mercado?";  
 	next;  
-	if (select("Sim:NÃ£o") == 1) {  
+	if (select("Sim:Não") == 1) {  
 		mes "[Teleporte Mercado]";  
 		mes "Teleportando...";  
 		close2;  

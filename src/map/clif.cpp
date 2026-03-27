@@ -5874,6 +5874,35 @@ void clif_skill_scale( struct block_list *bl, int32 src_id, int32 x, int32 y, ui
 /// is disposable:
 ///     0 = yellow chat text "[src name] will use skill [skill name]."
 ///     1 = no text
+static int32 clif_skillcasting_feintbomb_ack_sub( struct block_list *tbl, va_list ap ){
+	struct block_list *src = va_arg( ap, struct block_list* );
+	PACKET_ZC_USESKILL_ACK *proto = va_arg( ap, PACKET_ZC_USESKILL_ACK* );
+
+	map_session_data *tsd = BL_CAST( BL_PC, tbl );
+	nullpo_ret( src );
+	nullpo_ret( tsd );
+
+	PACKET_ZC_USESKILL_ACK p = *proto;
+#if PACKETVER_MAIN_NUM >= 20091124 || PACKETVER_RE_NUM >= 20091124 || defined(PACKETVER_ZERO)
+	// Enemies must not get disposable=0 or the skill-name bubble follows the sprite through OPTION_INVISIBLE; DISP does not clear it on many clients.
+	if( tbl == src )
+		p.disposable = false;
+	else if( battle_check_target( src, tbl, BCT_ENEMY ) > 0 )
+		p.disposable = true;
+	else
+		p.disposable = false;
+#endif
+
+	int32 fd = tsd->fd;
+	if( !session_isActive( fd ) )
+		return 0;
+
+	WFIFOHEAD( fd, sizeof( p ) );
+	memcpy( WFIFOP( fd, 0 ), &p, sizeof( p ) );
+	WFIFOSET( fd, sizeof( p ) );
+	return 0;
+}
+
 void clif_skillcasting(block_list& src, block_list* dst, uint16 dst_x, uint16 dst_y, uint16 skill_id, uint16 skill_lv, e_element property, int32 casttime){
 	PACKET_ZC_USESKILL_ACK p = {};
 
@@ -5906,6 +5935,12 @@ void clif_skillcasting(block_list& src, block_list* dst, uint16 dst_x, uint16 ds
 
 		p.srcId = disguised_bl_id( src.id );
 		clif_send(&p,sizeof(p), &src, SELF);
+	} else if( skill_id == SC_FEINTBOMB && src.type == BL_PC ) {
+#if PACKETVER_MAIN_NUM >= 20091124 || PACKETVER_RE_NUM >= 20091124 || defined(PACKETVER_ZERO)
+		map_foreachinallarea( clif_skillcasting_feintbomb_ack_sub, src.m, src.x - AREA_SIZE, src.y - AREA_SIZE, src.x + AREA_SIZE, src.y + AREA_SIZE, BL_PC, &src, &p );
+#else
+		clif_send( &p, sizeof( p ), &src, AREA );
+#endif
 	} else
 		clif_send(&p,sizeof(p), &src, AREA);
 
@@ -5924,6 +5959,51 @@ void clif_skillcastcancel( block_list& bl ){
 	packet.gid = bl.id;
 
 	clif_send( &packet, sizeof(PACKET_ZC_DISPEL), &bl, AREA );
+}
+
+/// Same as clif_skillcastcancel but skips the source client (AREA_WOS). Used so others clear skill/cast UI without affecting the caster.
+void clif_skillcastcancel_wos( block_list& bl ){
+	PACKET_ZC_DISPEL packet{};
+
+	packet.packetType = HEADER_ZC_DISPEL;
+	packet.gid = bl.id;
+
+	clif_send( &packet, sizeof(PACKET_ZC_DISPEL), &bl, AREA_WOS );
+}
+
+static int32 clif_skillcastcancel_enemies_sub( struct block_list *tbl, va_list ap ){
+	struct block_list *src = va_arg( ap, struct block_list* );
+	unsigned char *buf = va_arg( ap, unsigned char* );
+	int32 len = va_arg( ap, int32 );
+
+	map_session_data *tsd = BL_CAST( BL_PC, tbl );
+	nullpo_ret( src );
+	nullpo_ret( tsd );
+
+	if( battle_check_target( src, tbl, BCT_ENEMY ) <= 0 )
+		return 0;
+
+	int32 fd = tsd->fd;
+	if( !session_isActive( fd ) )
+		return 0;
+
+	WFIFOHEAD( fd, len );
+	if( WFIFOP( fd, 0 ) == buf ){
+		ShowError( "clif_skillcastcancel_enemies_sub: invalid buffer reuse\n" );
+		return 0;
+	}
+	memcpy( WFIFOP( fd, 0 ), buf, len );
+	WFIFOSET( fd, len );
+	return 0;
+}
+
+void clif_skillcastcancel_enemies_only( block_list& bl ){
+	PACKET_ZC_DISPEL packet{};
+
+	packet.packetType = HEADER_ZC_DISPEL;
+	packet.gid = bl.id;
+
+	map_foreachinallarea( clif_skillcastcancel_enemies_sub, bl.m, bl.x - AREA_SIZE, bl.y - AREA_SIZE, bl.x + AREA_SIZE, bl.y + AREA_SIZE, BL_PC, &bl, reinterpret_cast<unsigned char*>( &packet ), static_cast<int32>( sizeof( packet ) ) );
 }
 
 
@@ -6131,6 +6211,29 @@ bool clif_skill_nodamage( block_list* src, block_list& dst, uint16 skill_id, int
 			// It is necessary to revert the changes done above for the disguised target
 			p.targetAID = dst.id;
 		}
+		clif_send(&p, sizeof(p), src, SELF);
+	}
+
+	return success;
+}
+
+/// Non-damaging skill effect sent only to self.
+bool clif_skill_nodamage_self( block_list* src, block_list& dst, uint16 skill_id, int32 heal, bool success ){
+	PACKET_ZC_USE_SKILL p{};
+
+	p.PacketType = HEADER_ZC_USE_SKILL;
+	p.SKID = skill_id;
+	p.level = std::min( static_cast<decltype(p.level)>( heal ), std::numeric_limits<decltype(p.level)>::max() );
+	p.targetAID = dst.id;
+	p.result = success;
+	p.srcAID = (src != nullptr) ? src->id : 0;
+
+	clif_send(&p, sizeof(p), &dst, SELF);
+
+	if(src != nullptr && disguised(src)) {
+		p.srcAID = disguised_bl_id(src->id);
+		if (disguised(&dst))
+			p.targetAID = dst.id;
 		clif_send(&p, sizeof(p), src, SELF);
 	}
 

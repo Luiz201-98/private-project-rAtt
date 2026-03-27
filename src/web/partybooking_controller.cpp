@@ -255,7 +255,6 @@ HANDLER_FUNC(partybooking_delete){
 	SQLLock sl( MAP_SQL_LOCK );
 	sl.lock();
 	auto handle = sl.getHandle();
-
 	if( SQL_ERROR == Sql_Query( handle, "DELETE FROM `%s` WHERE `world_name` = '%s' AND `account_id` = '%d'", partybookings_table, world_name.c_str(), account_id ) ){
 		Sql_ShowDebug( handle );
 

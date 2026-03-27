@@ -48,6 +48,7 @@
 #include "party.hpp"
 #include "path.hpp"
 #include "pc.hpp"
+#include "skill.hpp"
 #include "pet.hpp"
 #include "quest.hpp"
 #include "storage.hpp"
@@ -547,6 +548,116 @@ int32 map_moveblock(struct block_list *bl, int32 x1, int32 y1, t_tick tick)
 #endif
 
 	if (bl->type&BL_CHAR) {
+		// Move NB before skill_unit_move(onplace). Side Slide: skip during knockback; first walk resyncs field to player.
+		// Resync must not be gated on sc->empty()/SC_NEUTRALBARRIER_MASTER — that could skip the whole block and leave the field stuck.
+		map_session_data *sd_nb = BL_CAST(BL_PC, bl);
+		if (sd_nb != nullptr && sd_nb->state.neutralbarrier_resync_next_walk && !sd_nb->state.skip_neutralbarrier_follow) {
+			std::shared_ptr<s_skill_unit_group> nb_grp = nullptr;
+			if (sc != nullptr && sc->getSCE(SC_NEUTRALBARRIER_MASTER))
+				nb_grp = skill_id2group(sc->getSCE(SC_NEUTRALBARRIER_MASTER)->val2);
+			if (nb_grp == nullptr)
+				nb_grp = skill_neutralbarrier_resolve_group_for_pc(sd_nb);
+			// Rigid delta when anchor was saved at slide. Snap fallback targets cast centroid offset (left side), not feet center.
+			if (nb_grp != nullptr && nb_grp->skill_id == NC_NEUTRALBARRIER) {
+				int32 alive_units = 0;
+				int64 pre_sx = 0, pre_sy = 0;
+				for (int32 i = 0; i < nb_grp->unit_count; i++) {
+					if (nb_grp->unit[i].alive && nb_grp->unit[i].m == bl->m) {
+						alive_units++;
+						pre_sx += nb_grp->unit[i].x;
+						pre_sy += nb_grp->unit[i].y;
+					}
+				}
+				const bool damaged_layout = (alive_units < nb_grp->unit_count);
+				int32 pre_cx = 0, pre_cy = 0;
+				if (alive_units > 0) {
+					pre_cx = static_cast<int32>(pre_sx / alive_units);
+					pre_cy = static_cast<int32>(pre_sy / alive_units);
+				}
+				int32 snap_tx = static_cast<int32>(x1);
+				int32 snap_ty = static_cast<int32>(y1);
+				int32 target_cx = snap_tx;
+				int32 target_cy = snap_ty;
+				if (sd_nb->state.neutralbarrier_centroid_rel_set) {
+					snap_tx += sd_nb->neutralbarrier_centroid_rel_x;
+					snap_ty += sd_nb->neutralbarrier_centroid_rel_y;
+					target_cx = snap_tx;
+					target_cy = snap_ty;
+				}
+				if (sd_nb->state.neutralbarrier_slide_anchor_valid) {
+					int32 dx32 = static_cast<int32>(x1) - static_cast<int32>(sd_nb->neutralbarrier_slide_anchor_x);
+					int32 dy32 = static_cast<int32>(y1) - static_cast<int32>(sd_nb->neutralbarrier_slide_anchor_y);
+					if (dx32 != 0 || dy32 != 0)
+						skill_neutralbarrier_move_group_slide_delta( nb_grp, bl->m, dx32, dy32 );
+					else if (!damaged_layout)
+						skill_neutralbarrier_snap_group_to_xy( nb_grp, bl->m, static_cast<int16>(snap_tx), static_cast<int16>(snap_ty) );
+				} else if (!damaged_layout)
+					skill_neutralbarrier_snap_group_to_xy( nb_grp, bl->m, static_cast<int16>(snap_tx), static_cast<int16>(snap_ty) );
+				else {
+					int32 step_dx = static_cast<int32>(x1) - static_cast<int32>(x0);
+					int32 step_dy = static_cast<int32>(y1) - static_cast<int32>(y0);
+					if (step_dx != 0 || step_dy != 0)
+						skill_neutralbarrier_move_group_slide_delta( nb_grp, bl->m, step_dx, step_dy );
+				}
+				// Keep intact layout strict alignment; damaged layout must preserve surviving side offset.
+				if (!damaged_layout)
+					skill_neutralbarrier_snap_group_to_xy( nb_grp, bl->m, static_cast<int16>(snap_tx), static_cast<int16>(snap_ty) );
+				else if (alive_units > 0) {
+					// For damaged NB, use offset captured at Side Slide start (live centroid relative to caster).
+					if (sd_nb->state.neutralbarrier_slide_rel_set) {
+						target_cx = static_cast<int32>(x1) + static_cast<int32>(sd_nb->neutralbarrier_slide_rel_x);
+						target_cy = static_cast<int32>(y1) + static_cast<int32>(sd_nb->neutralbarrier_slide_rel_y);
+					} else {
+						// Fallback: preserve current offset by translating pre-slide centroid with caster delta.
+						int32 want_dx = (sd_nb->state.neutralbarrier_slide_anchor_valid)
+							? (static_cast<int32>(x1) - static_cast<int32>(sd_nb->neutralbarrier_slide_anchor_x))
+							: (static_cast<int32>(x1) - static_cast<int32>(x0));
+						int32 want_dy = (sd_nb->state.neutralbarrier_slide_anchor_valid)
+							? (static_cast<int32>(y1) - static_cast<int32>(sd_nb->neutralbarrier_slide_anchor_y))
+							: (static_cast<int32>(y1) - static_cast<int32>(y0));
+						target_cx = pre_cx + want_dx;
+						target_cy = pre_cy + want_dy;
+					}
+					skill_neutralbarrier_snap_group_to_xy( nb_grp, bl->m, static_cast<int16>(target_cx), static_cast<int16>(target_cy) );
+				}
+				// Only clear resync when NB centroid effectively reached the target; otherwise retry on next walk step.
+				int64 post_sx = 0, post_sy = 0;
+				int32 post_n = 0;
+				for (int32 i = 0; i < nb_grp->unit_count; i++) {
+					if (!nb_grp->unit[i].alive || nb_grp->unit[i].m != bl->m)
+						continue;
+					post_sx += nb_grp->unit[i].x;
+					post_sy += nb_grp->unit[i].y;
+					post_n++;
+				}
+				bool resync_done = false;
+				if (post_n > 0) {
+					int32 post_cx = static_cast<int32>(post_sx / post_n);
+					int32 post_cy = static_cast<int32>(post_sy / post_n);
+					int32 remain = std::abs(target_cx - post_cx) + std::abs(target_cy - post_cy);
+					resync_done = (remain <= 1);
+				}
+				if (resync_done) {
+					sd_nb->neutralbarrier_slide_anchor_x = -1;
+					sd_nb->neutralbarrier_slide_anchor_y = -1;
+					sd_nb->state.neutralbarrier_slide_anchor_valid = 0;
+					sd_nb->neutralbarrier_slide_rel_x = 0;
+					sd_nb->neutralbarrier_slide_rel_y = 0;
+					sd_nb->state.neutralbarrier_slide_rel_set = 0;
+					sd_nb->state.neutralbarrier_resync_next_walk = 0;
+				}
+			}
+		} else if (sc != nullptr && !sc->empty() && !sc->getSCE(SC_DANCING) && sc->getSCE(SC_NEUTRALBARRIER_MASTER)) {
+			std::shared_ptr<s_skill_unit_group> nb_grp = skill_id2group(sc->getSCE(SC_NEUTRALBARRIER_MASTER)->val2);
+			if (nb_grp == nullptr)
+				nb_grp = skill_neutralbarrier_resolve_group_for_pc(sd_nb);
+			if (sd_nb != nullptr && nb_grp != nullptr) {
+				if (sd_nb->state.skip_neutralbarrier_follow)
+					;
+				else
+					skill_neutralbarrier_move_follow_pc_step( nb_grp, bl->m, x0, y0, x1, y1 );
+			}
+		}
 
 		skill_unit_move(bl,tick,3);
 
@@ -570,9 +681,7 @@ int32 map_moveblock(struct block_list *bl, int32 x1, int32 y1, t_tick tick)
 				if (sc->getSCE(SC_BANDING))
 					skill_unit_move_unit_group(skill_id2group(sc->getSCE(SC_BANDING)->val4), bl->m, x1-x0, y1-y0);
 
-				if (sc->getSCE(SC_NEUTRALBARRIER_MASTER))
-					skill_unit_move_unit_group(skill_id2group(sc->getSCE(SC_NEUTRALBARRIER_MASTER)->val2), bl->m, x1-x0, y1-y0);
-				else if (sc->getSCE(SC_STEALTHFIELD_MASTER))
+				if (sc->getSCE(SC_STEALTHFIELD_MASTER))
 					skill_unit_move_unit_group(skill_id2group(sc->getSCE(SC_STEALTHFIELD_MASTER)->val2), bl->m, x1-x0, y1-y0);
 
 				if( sc->getSCE(SC__SHADOWFORM) ) {//Shadow Form Caster Moving
@@ -5375,6 +5484,10 @@ bool MapServer::initialize( int32 argc, char *argv[] ){
 	}
 
 	battle_config_read(BATTLE_CONF_FILENAME);
+	if (battle_config.player_trade)
+		ShowInfo("Battle config: player-to-player trade is enabled.\n");
+	else
+		ShowInfo("Battle config: player-to-player trade is DISABLED.\n");
 	script_config_read(SCRIPT_CONF_NAME);
 	inter_config_read(INTER_CONF_NAME);
 	log_config_read(LOG_CONF_NAME);

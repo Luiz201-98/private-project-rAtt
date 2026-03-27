@@ -3,13 +3,13 @@
 //===== By: ==================================================        
 //= Custom NPC        
 //===== Description: =========================================        
-//= Aplica AGI, cura, repara, dá montaria, reseta cooldowns
+//= Aplica AGI, cura, repara, d? montaria, reseta cooldowns
 //= e restoca stuffs salvos pela Maquina de Restoque
 //============================================================        
 
 
 //------------------------------------------------------------
-// Função global: restocar stuffs salvos pela Maquina de Restoque
+// Fun??o global: restocar stuffs salvos pela Maquina de Restoque
 //------------------------------------------------------------
 function	script	F_RestockSavedStuffs	{
 
@@ -35,7 +35,7 @@ function	script	F_RestockSavedStuffs	{
 	if (getarraysize(@tmp_id) == 0) return 0;
 
 	if (!checkweight2(@tmp_id, @tmp_amt)) {
-		// sem peso, não entrega nada
+		// sem peso, n?o entrega nada
 		return -1;
 	}
 
@@ -74,22 +74,66 @@ turbo_room,99,111,4	script	Curandeira	10039,{
 	end;  
 	  
 S_MONTARIAS:  
-	// Verifica se já está montado  
-	if (checkriding() || checkdragon() || checkfalcon() || checkcart() || checkmadogear() || ismounting()) {  
+	// Verifica se ja existe montaria/companheiro ativo, incluindo Warg/Wug.
+	if (checkriding() || checkdragon() || checkfalcon() || checkcart() || checkmadogear() || checkoption(Option_Wug) || checkoption(Option_Wugrider) || ismounting()) {  
 		return;  
 	}  
 	  
-	// Verifica classe e dá montaria apropriada  
-	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RUNE_KNIGHT && getskilllv("KN_RIDING") > 0) {  
+	// Preferencia salva pelo NPC Mestre das Montarias (#ROS2026_MOUNT_PREF):  
+	// 0=auto 1=Ranger Falcon 2=Ranger Warg 10=Mech Cart 11=Mech Mado 20=RK Dragon 30=RG Gryphon 40=Genetic Cart  
+
+	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RANGER) {  
+		if (#ROS2026_MOUNT_PREF == 1 && getskilllv("HT_FALCON") > 0) {  
+			setoption (OPTION_WUG|OPTION_WUGRIDER), 0;  
+			setfalcon;  
+			return;  
+		}  
+		if (#ROS2026_MOUNT_PREF == 2 && getskilllv("RA_WUGMASTERY") > 0 && getskilllv("RA_WUGRIDER") > 0) {  
+			setfalcon 0;  
+			setoption OPTION_WUGRIDER, 1;  
+			return;  
+		}  
+		if (getskilllv("RA_WUGRIDER") > 0 && getskilllv("RA_WUGMASTERY") > 0) {  
+			setfalcon 0;  
+			setoption OPTION_WUGRIDER, 1;  
+			return;  
+		}  
+		if (getskilllv("HT_FALCON") > 0) {  
+			setoption (OPTION_WUG|OPTION_WUGRIDER), 0;  
+			setfalcon;  
+			return;  
+		}  
+		return;  
+	}  
+
+	if ((eaclass()&EAJ_THIRDMASK)==EAJ_MECHANIC) {  
+		if (#ROS2026_MOUNT_PREF == 10 && getskilllv("MC_PUSHCART") > 0) {  
+			if (checkmadogear()) setmadogear 0;  
+			if (!checkcart()) setcart;  
+			return;  
+		}  
+		if (#ROS2026_MOUNT_PREF == 11 && getskilllv("NC_MADOLICENCE") > 0) {  
+			if (checkcart()) setcart 0;  
+			if (!checkmadogear()) setmadogear;  
+			return;  
+		}  
+		if (getskilllv("NC_MADOLICENCE") > 0) {  
+			if (checkcart()) setcart 0;  
+			if (!checkmadogear()) setmadogear;  
+			return;  
+		}  
+		if (getskilllv("MC_PUSHCART") > 0 && !checkcart()) {  
+			setcart;  
+			return;  
+		}  
+		return;  
+	}  
+
+	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RUNE_KNIGHT && getskilllv("RK_DRAGONTRAINING") > 0) {  
 		setdragon;  
 	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_ROYAL_GUARD && getskilllv("KN_RIDING") > 0) {  
 		setriding;  
-	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_RANGER && getskilllv("RA_WUGRIDER") > 0) {  
-		setoption 0x100000; // OPTION_WUGRIDER  
-	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_MECHANIC && getskilllv("NC_MADOLICENCE") > 0) {  
-		setmadogear;  
 	} else if (getskilllv("KN_RIDING") > 0) {  
-		// Knights/Crusaders e classes que usam Peco  
 		if (BaseJob == Job_Knight || BaseJob == Job_Lord_Knight || BaseJob == Job_Rune_Knight) {  
 			setriding;  
 		} else if (BaseJob == Job_Crusader || BaseJob == Job_Paladin || BaseJob == Job_Royal_Guard) {  
@@ -101,4 +145,12 @@ S_MONTARIAS:
 		setcart;  
 	}  
 	return;  
-}
+
+OnInit:
+	initnpctimer;
+	end;
+OnTimer1000:
+	showscript "Curandeira ROS!!";
+	setnpctimer 0;
+	end;
+}  

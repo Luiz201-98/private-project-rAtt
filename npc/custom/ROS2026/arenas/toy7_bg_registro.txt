@@ -4,21 +4,20 @@
 // Quando ambos os times estiverem prontos, entra na BG Toy7_BG (25ros03_01)
 // ==============================================================================
 
-// Configuração simples (pode ajustar depois)
+// Configuracao simples (pode ajustar depois)
 -	script	Toy7_BG_Config	-1,{
 OnInit:
-	// Mínimo de membros em cada party para iniciar (ajuste para 7 quando quiser 7x7 real)
+	// Minimo de membros em cada party para iniciar (ajuste para 7 quando quiser 7x7 real)
 	set $toy7_min_members, 2;
 	end;
 }
 
-// ------------------------------------------------------------------------------ 
+// ------------------------------------------------------------------------------
 // Time 1 - Teleporte simples para o lado Azul da arena Toy 7x7
 // ------------------------------------------------------------------------------
-
 turbo_room,106,117,5	script	ROS 2026 ARENAS::Toy7_Time1	420,{
 	mes "[ ^0055FFToy 7x7 - Time Azul^000000 ]";
-	mes "Você será enviado para o lado ^0055FFAzul^000000 da arena Toy 7x7.";
+	mes "Voce sera enviado para o lado ^0055FFAzul^000000 da arena Toy 7x7.";
 	next;
 	mes "[ ^0055FFToy 7x7 - Time 1^000000 ]";
 	mes "Boa sorte na batalha!";
@@ -32,13 +31,12 @@ OnInit:
 	end;
 }
 
-// ------------------------------------------------------------------------------ 
+// ------------------------------------------------------------------------------
 // Time 2 - Teleporte simples para o lado Vermelho da arena Toy 7x7
 // ------------------------------------------------------------------------------
-
 turbo_room,93,117,5	script	ROS 2026 ARENAS::Toy7_Time2	416,{
 	mes "[ ^FF0000Toy 7x7 - Time Vermelho^000000 ]";
-	mes "Você será enviado para o lado ^FF0000Vermelho^000000 da arena Toy 7x7.";
+	mes "Voce sera enviado para o lado ^FF0000Vermelho^000000 da arena Toy 7x7.";
 	next;
 	mes "[ ^FF0000Toy 7x7 - Time 2^000000 ]";
 	mes "Boa sorte na batalha!";
@@ -51,4 +49,3 @@ OnInit:
 	waitingroom "Time Vermelho ROS",0;
 	end;
 }
-

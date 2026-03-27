@@ -1,14 +1,14 @@
 turbo_room,109,110,4	script	Maquina de Restoque	564,{
 
-	// variáveis permanentes por personagem:
+	// variaveis permanentes por personagem:
 	// StuffsSaved = 0/1, Stuffs_id[], Stuffs_amt[]
 
 	mes "[Maquina de Restoque]";
 	if (StuffsSaved) {
-		mes "Você já tem uma lista de stuffs salva.";
+		mes "Voce ja possui uma lista de suprimentos salva.";
 		next;
 
-		// Jogador JÁ tem lista salva
+		// Jogador ja tem lista salva
 		// 1 - Sobrescrever com itens atuais
 		// 2 - Apagar lista salva
 		// 3 - Resetar Zenys para 20.000.000
@@ -20,115 +20,102 @@ turbo_room,109,110,4	script	Maquina de Restoque	564,{
 			"Cancelar"
 		);
 
-		// 1) Sobrescrever
 		if (.@opt == 1) {
 			mes "[Maquina de Restoque]";
-			mes "Isso vai apagar a lista de stuffs salva e gravar a lista atual do seu inventário.";
+			mes "Esta acao ira apagar a lista de suprimentos salva e registrar a lista atual do seu inventario.";
 			next;
-			if (select("Apagar e salvar de novo:Cancelar") == 2) close;
+			if (select("Confirmar sobrescrita:Cancelar") == 2) close;
 			goto L_SaveCurrent;
 		}
 
-		// 2) Apagar lista salva
 		if (.@opt == 2) {
 			mes "[Maquina de Restoque]";
-			mes "Isso vai apagar definitivamente a lista de stuffs salva.";
+			mes "Esta acao ira apagar definitivamente a sua lista de suprimentos salva.";
 			next;
-			if (select("Apagar:Cancelar") == 2) close;
+			if (select("Apagar lista:Cancelar") == 2) close;
 
 			deletearray Stuffs_id[0], getarraysize(Stuffs_id);
 			deletearray Stuffs_amt[0], getarraysize(Stuffs_amt);
 			StuffsSaved = 0;
 
 			mes "[Maquina de Restoque]";
-			mes "Lista de stuffs salva apagada.";
+			mes "A lista de suprimentos foi removida com sucesso.";
 			close;
 		}
 
-		// 3) Resetar Zenys (instantâneo, sem diálogo)
-		if (.@opt == 3) {
+		if (.@opt == 3)
 			goto L_ResetZeny;
-		}
 
-		// 4) Cancelar
 		close;
-
 	} else {
-		mes "Você ainda não tem uma lista de stuffs salva.";
+		mes "Voce ainda nao possui uma lista de suprimentos salva.";
 		next;
 
-		// Jogador NÃO tem lista salva
+		// Jogador nao tem lista salva
 		// 1 - Salvar stuffs atuais
 		// 2 - Resetar Zenys
 		// 3 - Cancelar
 		.@opt = select(
-			"Salvar meus stuffs atuais",
+			"Salvar meus suprimentos atuais",
 			"Resetar Zenys para 20.000.000",
 			"Cancelar"
 		);
 
-		if (.@opt == 1) {
+		if (.@opt == 1)
 			goto L_SaveCurrent;
-		}
-		if (.@opt == 2) {
+		if (.@opt == 2)
 			goto L_ResetZeny;
-		}
 
 		close;
 	}
 
-	//---------------------------------
-	// Rotina de salvar itens atuais
-	//---------------------------------
 L_SaveCurrent:
-
 	getinventorylist;
 
 	if (getarraysize(@inventorylist_id) == 0) {
 		mes "[Maquina de Restoque]";
-		mes "Seu inventário está vazio. Nada para salvar.";
+		mes "Seu inventario esta vazio. Nao ha itens para salvar.";
 		close;
 	}
 
 	mes "[Maquina de Restoque]";
-	mes "Esta é a lista de itens (apenas não-equipados) que será salva:";
+	mes "A lista abaixo, contendo apenas itens nao equipados, sera registrada:";
 	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
-		if (@inventorylist_equip[.@i]) continue; // ignora equipados
+		if (@inventorylist_equip[.@i]) continue;
 		mes "- ID "+@inventorylist_id[.@i]+"  qtd: "+@inventorylist_amount[.@i];
 	}
 	next;
 
 	if (select("Salvar lista:Cancelar") == 2) close;
 
-	// limpa lista anterior
 	deletearray Stuffs_id[0], getarraysize(Stuffs_id);
 	deletearray Stuffs_amt[0], getarraysize(Stuffs_amt);
 
-	// copia itens não-equipados para variáveis permanentes
 	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
-		if (@inventorylist_equip[.@i]) continue; // só inventário
+		if (@inventorylist_equip[.@i]) continue;
 		.@idx = getarraysize(Stuffs_id);
-		Stuffs_id[.@idx]  = @inventorylist_id[.@i];
+		Stuffs_id[.@idx] = @inventorylist_id[.@i];
 		Stuffs_amt[.@idx] = @inventorylist_amount[.@i];
 	}
 
 	StuffsSaved = 1;
 
 	mes "[Maquina de Restoque]";
-	mes "Sua lista de stuffs foi salva com sucesso.";
+	mes "Sua lista de suprimentos foi salva com sucesso.";
 	close;
 
-
-	//---------------------------------
-	// Rotina de reset de Zeny (instantâneo)
-	//---------------------------------
 L_ResetZeny:
-
-	.@limit = 20000000; // 20kk
-
+	.@limit = 20000000;
 	if (Zeny < .@limit)
 		Zeny = .@limit;
 
-	// sem diálogos, fecha direto
 	close;
+
+OnInit:
+	initnpctimer;
+	end;
+OnTimer1000:
+	showscript "Maquina de Restoque";
+	setnpctimer 0;
+	end;
 }

@@ -35,6 +35,7 @@
 #include "pc_groups.hpp"
 #include "pet.hpp"
 #include "script.hpp"
+#include "skill.hpp"
 
 using namespace rathena;
 
@@ -2108,7 +2109,8 @@ bool status_check_skilluse(struct block_list *src, struct block_list *target, ui
 			return false;
 		}
 
-		if (skill_id > 0 && sc->opt1 && sc->opt1 != OPT1_STONEWAIT && sc->opt1 != OPT1_BURNING && skill_id != RK_REFRESH && skill_id != SU_GROOMING && skill_id != SR_GENTLETOUCH_CURE) { // Stuned/Frozen/etc
+		// OPT1_SLEEP: skip lock if not Deep Sleep alone, or if SC_SLEEP (incl. empilhado com Deep Sleep). Só Deep Sleep: mantém trava.
+		if (skill_id > 0 && sc->opt1 && sc->opt1 != OPT1_STONEWAIT && sc->opt1 != OPT1_BURNING && skill_id != RK_REFRESH && skill_id != SU_GROOMING && skill_id != SR_GENTLETOUCH_CURE && !(sc->opt1 == OPT1_SLEEP && (!sc->getSCE(SC_DEEPSLEEP) || sc->getSCE(SC_SLEEP)))) { // Stuned/Frozen/etc
 			if (flag != 1) // Can't cast, casted stuff can't damage.
 				return false;
 			if (skill_get_casttype(skill_id) == CAST_DAMAGE)
@@ -2211,7 +2213,9 @@ bool status_check_skilluse(struct block_list *src, struct block_list *target, ui
 			if ((sc->option&OPTION_HIDE) && src->type == BL_PC && (skill_id == 0 || !skill_get_inf2(skill_id, INF2_ALLOWWHENHIDDEN))) {
 				return false;
 			}
-			if (sc->option&OPTION_CHASEWALK && skill_id != ST_CHASEWALK)
+			// Allow certain actions (ex: weapon enchantment items) while in chase-walk.
+			// They should still cancel chase-walk via their status' EndOnStart.
+			if (sc->option&OPTION_CHASEWALK && skill_id != ST_CHASEWALK && skill_id != ITEM_ENCHANTARMS)
 				return false;
 		}
 	}
@@ -2399,7 +2403,13 @@ int32 status_base_amotion_pc(map_session_data* sd, struct status_data* status)
 		val -= 50 - 10 * pc_checkskill(sd, KN_CAVALIERMASTERY);
 	else if (pc_isridingdragon(sd))
 		val -= 25 - 5 * pc_checkskill(sd, RK_DRAGONTRAINING);
-	aspd = ((int32)(temp_aspd + ((float)(status_calc_aspd(sd, &sd->sc, true) + val) * status->agi / 200)) - min(aspd, 200));
+	{
+		const int32 wpn_for_cap = aspd;
+		const int32 sc_fixed_true = status_calc_aspd(sd, &sd->sc, true);
+		const int32 agi_term = static_cast<int32>(static_cast<float>(sc_fixed_true + val) * status->agi / 200.f);
+		const int32 inner = static_cast<int32>(temp_aspd) + agi_term;
+		aspd = inner - min(wpn_for_cap, 200);
+	}
 	return aspd;
 #else
 	if (job == nullptr)
@@ -6416,8 +6426,17 @@ void status_calc_bl_main(struct block_list& bl, std::bitset<SCB_MAX> flag)
 #endif
 
 #ifdef RENEWAL_ASPD
-			// RE ASPD % modifier
-			amotion += (max(195 - amotion, 2) * (status->aspd_rate2 + status_calc_aspd(&bl, sc, false))) / 100;
+			// RE ASPD % modifier (ref: iRO wiki equip term uses 195 − Base; rAthena adds skill% into same step — raise ref slightly if display lags kRO)
+			{
+				const int32 prev_amotion = amotion;
+				const int32 remaining = max(battle_config.renewal_aspd_percent_ref - amotion, 2);
+				const int32 sc_aspd = status_calc_aspd(&bl, sc, false);
+				const int32 rate2 = status->aspd_rate2;
+				const int32 aspd_bonus_total = rate2 + sc_aspd;
+				const int32 delta = (remaining * aspd_bonus_total) / 100;
+
+				amotion = prev_amotion + delta;
+			}
 
 			// Renewal base value is actually ASPD and not amotion, so we need to convert it
 			amotion = AMOTION_ZERO_ASPD - amotion * AMOTION_INTERVAL;
@@ -7824,7 +7843,7 @@ static defType status_calc_def(struct block_list *bl, status_change *sc, int32 d
 		def -= def * (bl->type == BL_PC ? 30 : 10) / 100;
 	if( sc->getSCE(SC_ANALYZE) )
 		def -= def * (14 * sc->getSCE(SC_ANALYZE)->val1) / 100;
-	if( sc->getSCE(SC_NEUTRALBARRIER) )
+	if( sc->getSCE(SC_NEUTRALBARRIER) && map_find_skill_unit_oncell(bl, bl->x, bl->y, NC_NEUTRALBARRIER, nullptr, 0) != nullptr )
 		def += def * sc->getSCE(SC_NEUTRALBARRIER)->val2 / 100;
 	if( sc->getSCE(SC_PRESTIGE) )
 		def += sc->getSCE(SC_PRESTIGE)->val3;
@@ -7966,7 +7985,7 @@ static defType status_calc_mdef(struct block_list *bl, status_change *sc, int32 
 		mdef += 25 * mdef / 100;
 	if(sc->getSCE(SC_BURNING))
 		mdef -= 25 * mdef / 100;
-	if( sc->getSCE(SC_NEUTRALBARRIER) )
+	if( sc->getSCE(SC_NEUTRALBARRIER) && map_find_skill_unit_oncell(bl, bl->x, bl->y, NC_NEUTRALBARRIER, nullptr, 0) != nullptr )
 		mdef += mdef * sc->getSCE(SC_NEUTRALBARRIER)->val2 / 100;
 	if(sc->getSCE(SC_ANALYZE))
 		mdef -= mdef * ( 14 * sc->getSCE(SC_ANALYZE)->val1 ) / 100;
@@ -8188,8 +8207,9 @@ static uint16 status_calc_speed(struct block_list *bl, status_change *sc, int32 
 			val = max( val, 10 );
 		if( sc->getSCE(SC_GN_CARTBOOST) )
 			val = max( val, sc->getSCE(SC_GN_CARTBOOST)->val2 );
+		// Movement matches Increase AGI (wiki); ASPD% uses val3 elsewhere (5*lv + Voice Lessons).
 		if( sc->getSCE(SC_SWINGDANCE) )
-			val = max( val, sc->getSCE(SC_SWINGDANCE)->val3 );
+			val = max( val, 25 );
 		if( sc->getSCE(SC_WIND_STEP_OPTION) )
 			val = max( val, sc->getSCE(SC_WIND_STEP_OPTION)->val2 );
 		if( sc->getSCE(SC_FULL_THROTTLE) )
@@ -9773,7 +9793,9 @@ t_tick status_get_sc_def(block_list *src, block_list *bl, sc_type type, int32 ra
 			tick_def2 = 1000 * ((status->luk / 2 + status->agi / 5) / 2); // (50 * LUK / 100 + 20 * AGI / 100) / 2
 			break;
 		case SC_DEEPSLEEP:
-			tick_def2 = status_get_base_status(bl)->int_ * 25 + status_get_lv(bl) * 50;
+			// Deep Sleep duration reduction should scale with target INT only.
+			// Using target level here made low-INT targets lose too much duration.
+			tick_def2 = status_get_base_status(bl)->int_ * 25;
 			break;
 		case SC_NETHERWORLD:
 			// Resistance: {(Target's Base Level / 50) + (Target's Job Level / 10)} seconds
@@ -9826,7 +9848,8 @@ t_tick status_get_sc_def(block_list *src, block_list *bl, sc_type type, int32 ra
 			tick_def2 = (status->vit + status->agi) * 70;
 			break;
 		case SC_CRYSTALIZE:
-			tick_def2 = status_get_base_status(bl)->vit * 100;
+			// For players, use allocated/base stat (sd->status.vit) instead of derived base_status vit.
+			tick_def2 = (sd ? sd->status.vit : status_get_base_status(bl)->vit) * 100;
 			break;
 		case SC_VACUUM_EXTREME:
 			tick_def2 = (sd ? sd->status.str : status_get_base_status(bl)->str) * 50;
@@ -10774,6 +10797,15 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 				val3 = sce->val3;
 				val4 = sce->val4;
 				break;
+			case SC_ANKLE:
+				// val2 = skill unit group_id; rebinding to another trap must refresh even if skill_lv is lower
+				if (sce->val2 != val2)
+					break;
+				if (scdb->flag[SCF_OVERLAPIGNORELEVEL])
+					break;
+				if (sce->val1 > val1)
+					return true;
+				break;
 			case SC_SHAPESHIFT:
 			case SC_PROPERTYWALK:
 				break;
@@ -10853,11 +10885,11 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					int32 i;
 					for( i = 0; i < MAX_DEVOTION; i++ ) {
 						if( sd->devotion[i] && (tsd = map_id2sd(sd->devotion[i])) )
-							status_change_start(src,tsd, type, 10000, val1, val2, val3, val4, tick, SCSTART_NOAVOID|SCSTART_NOICON);
+							status_change_start(src,tsd, type, 10000, val1, val2, val3, val4, tick, SCSTART_NOAVOID);
 					}
 				}
 				else if( bl->type == BL_MER && ((TBL_MER*)bl)->devotion_flag && (tsd = ((TBL_MER*)bl)->master) )
-					status_change_start(src,tsd, type, 10000, val1, val2, val3, val4, tick, SCSTART_NOAVOID|SCSTART_NOICON);
+					status_change_start(src,tsd, type, 10000, val1, val2, val3, val4, tick, SCSTART_NOAVOID);
 			}
 			if( val4 )
 				tick = INFINITE_TICK;
@@ -10952,11 +10984,11 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					int32 i;
 					for( i = 0; i < MAX_DEVOTION; i++ ) {
 						if( sd->devotion[i] && (tsd = map_id2sd(sd->devotion[i])) )
-							status_change_start(src,tsd, type, 10000, val1, val2, 0, 1, tick, SCSTART_NOAVOID|SCSTART_NOICON);
+							status_change_start(src,tsd, type, 10000, val1, val2, 0, 1, tick, SCSTART_NOAVOID);
 					}
 				}
 				else if( bl->type == BL_MER && ((TBL_MER*)bl)->devotion_flag && (tsd = ((TBL_MER*)bl)->master) )
-					status_change_start(src,tsd, type, 10000, val1, val2, 0, 1, tick, SCSTART_NOAVOID|SCSTART_NOICON);
+					status_change_start(src,tsd, type, 10000, val1, val2, 0, 1, tick, SCSTART_NOAVOID);
 			}
 			break;
 		case SC_STRIPWEAPON:
@@ -11297,11 +11329,18 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					if( sd ) {
 						for( i = 0; i < MAX_DEVOTION; i++ ) {
 							if( sd->devotion[i] && (tsd = map_id2sd(sd->devotion[i])) )
-								status_change_start(src,tsd, type, 10000, val1, val2, 0, 0, tick, SCSTART_NOAVOID|SCSTART_NOICON);
+								status_change_start(src,tsd, type, 10000, val1, val2, 0, 0, tick, SCSTART_NOAVOID);
 						}
 					}
 					else if( bl->type == BL_MER && ((TBL_MER*)bl)->devotion_flag && (tsd = ((TBL_MER*)bl)->master) )
-						status_change_start(src,tsd, type, 10000, val1, val2, 0, 0, tick, SCSTART_NOAVOID|SCSTART_NOICON);
+						status_change_start(src,tsd, type, 10000, val1, val2, 0, 0, tick, SCSTART_NOAVOID);
+				}
+			} else if( val2 == 0 && val1 > 0 ) {
+				// SCSTART_NOAVOID skips the loop above; still need block chance (e.g. bad devotion copy)
+				int32 i;
+				for( i = val2 = 0; i < val1; i++) {
+					int32 t = 5-(i / 2);
+					val2 += (t < 0)? 1:t;
 				}
 			}
 			break;
@@ -11366,6 +11405,10 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 				val2 = tick/10000;
 				tick_time = 10000; // [GodLesZ] tick time
 				status_change_clear_buffs(bl, SCCB_BUFFS|SCCB_DEBUFFS|SCCB_CHEM_PROTECT); // Remove buffs/debuffs
+				// Gospel self-cleanse must also remove Devotion/Redenção links.
+				status_change_end(bl, SC_DEVOTION);
+				// iRO: Battle Chant removes Inspiration (explicit — clear_buffs may skip due to status flags).
+				status_change_end(bl, SC_INSPIRATION);
 			}
 			break;
 
@@ -11462,13 +11505,21 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			status_change* d_sc = status_get_sc( d_bl );
 
 			if( d_sc != nullptr && !d_sc->empty() ){
-				// Inherits status from source
+				// Inherits status from source (must copy val2+ — e.g. SC_AUTOGUARD block rate is val2; was 0 with NOAVOID so battle never triggered)
 				const enum sc_type types[] = { SC_AUTOGUARD, SC_DEFENDER, SC_REFLECTSHIELD, SC_ENDURE };
 				int32 i = (map_flag_gvg2(bl->m) || map_getmapflag(bl->m, MF_BATTLEGROUND))?2:3;
 				while( i >= 0 ) {
 					enum sc_type type2 = types[i];
-					if( d_sc->getSCE(type2) )
-						status_change_start(d_bl, bl, type2, 10000, d_sc->getSCE(type2)->val1, 0, 0, (type2 == SC_REFLECTSHIELD ? 1 : 0), skill_get_time(status_db.getSkill(type2),d_sc->getSCE(type2)->val1), (type2 == SC_DEFENDER) ? SCSTART_NOAVOID : SCSTART_NOAVOID|SCSTART_NOICON);
+					if( status_change_entry *sce_src = d_sc->getSCE(type2); sce_src != nullptr ) {
+						int32 v2 = sce_src->val2;
+						int32 v3 = sce_src->val3;
+						int32 v4 = sce_src->val4;
+						if( type2 == SC_DEFENDER )
+							v4 = 0; // devotion target keeps DR only; no Defender movement/aspd penalty
+						else if( type2 == SC_REFLECTSHIELD )
+							v4 = 1; // inherited Reflect Shield (matches propagation from caster)
+						status_change_start(d_bl, bl, type2, 10000, sce_src->val1, v2, v3, v4, skill_get_time(status_db.getSkill(type2), sce_src->val1), SCSTART_NOAVOID);
+					}
 					i--;
 				}
 			}
@@ -12045,7 +12096,8 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			val4 = tick - tick_time; // Remaining time
 			break;
 		case SC_SWINGDANCE:
-			val3 = 3 * val1 + val2; // Walk speed and aspd reduction.
+			// ASPD% = Base (5% per skill level) + Voice Lessons (val2). Same as iRO wiki / kRO notes.
+			val3 = 5 * val1 + val2;
 			break;
 		case SC_SYMPHONYOFLOVER:
 			val3 = 2 * val1 + val2 + (sd?sd->status.job_level:50) / 4; // MDEF Increase
@@ -12548,6 +12600,7 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			break;
 		case SC_NEUTRALBARRIER:
 			val2 = 10 + val1 * 5; // Def/Mdef
+			// val3 = skill unit group id (barrier still has alive units while group exists)
 			tick = INFINITE_TICK;
 			break;
 		case SC_MAGIC_POISON:
@@ -13127,6 +13180,13 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					unit_stop_walking( bl, USW_FIXPOS );
 					unit_stop_attack(bl);
 				}
+				break;
+			case SC_NETHERWORLD:
+				// Like Vacuum Extreme: players keep the current walk segment (small slide) instead of USW_FIXPOS snap on cell entry.
+				if (bl->type == BL_PC)
+					break;
+				if (!unit_blown_immune(bl,0x1))
+					unit_stop_walking( bl, USW_FIXPOS );
 				break;
 			case SC_FREEZE:
 			case SC_STUN:
@@ -14113,6 +14173,21 @@ int32 status_change_end( struct block_list* bl, enum sc_type type, int32 tid ){
 	if(opt_flag[SCF_ONTOUCH] && sd && !sd->state.warping && map_getcell(bl->m,bl->x,bl->y,CELL_CHKNPC))
 		npc_touch_area_allnpc(sd,bl->m,bl->x,bl->y); // Trigger on-touch event.
 
+	// Client-side sleep desync guard:
+	// In some chains (Devotion/Crystalize/DeepSleep), the client can keep showing "Sleep"
+	// even when there is no SC_SLEEP/SC_DEEPSLEEP active server-side.
+	if (sd && (type == SC_DEEPSLEEP || type == SC_DEVOTION || type == SC_CRYSTALIZE)) {
+		const bool has_sleep_sc = sc->getSCE(SC_SLEEP) != nullptr;
+		const bool has_deepsleep_sc = sc->getSCE(SC_DEEPSLEEP) != nullptr;
+		if (!has_sleep_sc && !has_deepsleep_sc) {
+			if (sc->opt1 == OPT1_SLEEP)
+				sc->opt1 = OPT1_NONE;
+			clif_status_load(sd, static_cast<int32>(EFST_BODYSTATE_SLEEP), 0);
+			clif_status_load(sd, static_cast<int32>(EFST_DEEP_SLEEP), 0);
+			clif_changeoption(sd);
+		}
+	}
+
 	// Needed to be here to make sure OPT1_STONEWAIT has been cleared from the target (only on natural expiration of the stone wait timer)
 	if (type == SC_STONEWAIT && tid != INVALID_TIMER)
 		status_change_start(bl, bl, SC_STONE, 100, val1, val2, 0, 0, val3, SCSTART_NOAVOID);
@@ -14503,6 +14578,12 @@ TIMER_FUNC(status_change_timer){
 #endif
 
 	case SC_BERSERK:
+		// Bloody Lust: Berserk val3 no longer holds SC__BLOODYLUST after start; use SC__BLOODYLUST SCE + footprint check.
+		if (sc->getSCE(SC__BLOODYLUST) && bl->type == BL_PC) {
+			skill_bloodylust_leave_area_check(bl, tick);
+			if (!sc->getSCE(SC_BERSERK))
+				return 0;
+		}
 		// 5% every 10 seconds [DracoRPG]
 		if( --( sce->val3 ) > 0 && status_charge(bl, sce->val2, 0) && status->hp > 100 ) {
 			sc_timer_next(sce->val4+tick);

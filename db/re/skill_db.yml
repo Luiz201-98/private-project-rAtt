@@ -4001,6 +4001,7 @@ Body:
       Splash: true
     Flags:
       AllowOnMado: true
+      IgnoreHovering: true
     Hit: Single
     HitCount: 1
     SplashArea: -1
@@ -4317,7 +4318,7 @@ Body:
         NoFootSet: true
         NoKnockback: true
         RemovedByFireRain: true
-        HiddenTrap: true
+        HiddenTrap: false
     Status: Ankle
   - Id: 118
     Name: HT_SHOCKWAVE
@@ -8707,7 +8708,7 @@ Body:
       Splash: true
     Hit: Single
     HitCount: 1
-    SplashArea: -1
+    SplashArea: 15
     AfterCastActDelay: 300
     Duration1: 15000
     Duration2: 27000
@@ -21313,7 +21314,7 @@ Body:
     Description: Clearance
     MaxLevel: 5
     Type: Magic
-    TargetType: Attack
+    TargetType: Support
     DamageFlags:
       NoDamage: true
     Flags:
@@ -22565,7 +22566,6 @@ Body:
     Flags:
       TargetTrap: true
       AllowOnMado: true
-      IgnoreAutoGuard: true
       IgnoreCicada: true
     Hit: Single
     HitCount: 1
@@ -24055,6 +24055,7 @@ Body:
         RemovedByFireRain: true
     Status: Berserk
   - Id: 2304
+    # Display name (skill_get_name / overhead); must NOT be the internal constant SC_FEINTBOMB
     Name: SC_FEINTBOMB
     Description: Feint Bomb
     MaxLevel: 10
@@ -26202,6 +26203,8 @@ Body:
     TargetType: Ground
     DamageFlags:
       NoDamage: true
+    Flags:
+      IgnoreLandProtector: true
     Range: 9
     Hit: Single
     HitCount: 1
@@ -33078,6 +33081,7 @@ Body:
       Interval: 1000
       Flag:
         NoReiteration: true
+        HiddenTrap: true
     Status: Ankle
   - Id: 5011
     Name: AB_OFFERTORIUM

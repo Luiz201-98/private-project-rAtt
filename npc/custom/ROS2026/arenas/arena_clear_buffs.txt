@@ -1,0 +1,21 @@
+//===== rAthena Script =======================================
+//= Arena Clear Buffs
+//===== Description: =========================================
+//= Remove buffs ao entrar nas arenas ROS2026.
+//============================================================
+
+-	script	ROS2026_Arena_Clear_Buffs	-1,{
+OnPCLoadMapEvent:
+	.@map$ = strcharinfo(3);
+
+	if (.@map$ == "25ros03_01"
+		|| .@map$ == "2025arena1"
+		|| .@map$ == "2025arena2"
+		|| .@map$ == "2025arena3"
+		|| .@map$ == "2025arena4"
+		|| .@map$ == "2025arena5") {
+		sc_end SC_ALL;
+		bonus_script_clear 1;
+	}
+	end;
+}

@@ -37,6 +37,11 @@ void trade_traderequest(map_session_data *sd, map_session_data *target_sd)
 		return; //Can't trade in notrade mapflag maps.
 	}
 
+	if (!battle_config.player_trade) {
+		clif_displaymessage(sd->fd, msg_txt(sd, 272));
+		return;
+	}
+
 	if (target_sd == nullptr || sd == target_sd) {
 		clif_traderesponse(*sd, TRADE_ACK_CHARNOTEXIST);
 		return;
@@ -138,6 +143,17 @@ void trade_tradeack(map_session_data *sd, int32 type)
 
 	if (type != 3)
 		return; //If client didn't send accept, it's a broken packet?
+
+	if (!battle_config.player_trade) {
+		clif_displaymessage(sd->fd, msg_txt(sd, 272));
+		clif_traderesponse(*sd, TRADE_ACK_FAILED);
+		clif_traderesponse(*tsd, TRADE_ACK_FAILED);
+		sd->state.deal_locked = 0;
+		sd->trade_partner = {0, 0};
+		tsd->state.deal_locked = 0;
+		tsd->trade_partner = {0, 0};
+		return;
+	}
 
 	// Players can not request trade from far away, unless they are allowed to use @trade.
 	// Check here as well since the original character could had warped.
@@ -592,6 +608,11 @@ void trade_tradecommit(map_session_data *sd)
 
 	if (!sd->state.trading || !sd->state.deal_locked) //Locked should be 1 (pressed ok) before you can press trade.
 		return;
+
+	if (!battle_config.player_trade) {
+		trade_tradecancel(sd);
+		return;
+	}
 
 	if ((tsd = map_id2sd(sd->trade_partner.id)) == nullptr) {
 		trade_tradecancel(sd);

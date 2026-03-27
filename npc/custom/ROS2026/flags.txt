@@ -1,22 +1,23 @@
 // 2025 Arenas  
+2025arena1	mapflag	battleground	2
 2025arena1	mapflag	nopenalty  
-2025arena1	mapflag	nosave	SavePoint  
+2025arena1	mapflag	nosave	SavePoint 
 2025arena1	mapflag	nowarp  
 2025arena1	mapflag	noteleport  
 2025arena1	mapflag	nomemo  
-2025arena1	mapflag	gvg  
+2025arena1	mapflag	battleground	2 
 2025arena1	mapflag	loadevent  
 2025arena1	mapflag	noreturn  
 2025arena1	mapflag	nobranch  
 2025arena1	mapflag	noicewall  
-2025arena1	mapflag	nodrop  
+2025arena1	mapflag	nodrop  	
   
 2025arena2	mapflag	nopenalty  
 2025arena2	mapflag	nosave	SavePoint  
 2025arena2	mapflag	nowarp  
 2025arena2	mapflag	noteleport  
 2025arena2	mapflag	nomemo  
-2025arena2	mapflag	gvg  
+2025arena2	mapflag	battleground	2 
 2025arena2	mapflag	loadevent  
 2025arena2	mapflag	noreturn  
 2025arena2	mapflag	nobranch  
@@ -28,7 +29,7 @@
 2025arena3	mapflag	nowarp  
 2025arena3	mapflag	noteleport  
 2025arena3	mapflag	nomemo  
-2025arena3	mapflag	gvg  
+2025arena3	mapflag	battleground	2  
 2025arena3	mapflag	loadevent  
 2025arena3	mapflag	noreturn  
 2025arena3	mapflag	nobranch  
@@ -40,7 +41,7 @@
 2025arena4	mapflag	nowarp  
 2025arena4	mapflag	noteleport  
 2025arena4	mapflag	nomemo  
-2025arena4	mapflag	gvg  
+2025arena4	mapflag	battleground	2  
 2025arena4	mapflag	loadevent  
 2025arena4	mapflag	noreturn  
 2025arena4	mapflag	nobranch  
@@ -48,13 +49,25 @@
 2025arena4	mapflag	nodrop 
 
 25ros03_01	mapflag	battleground	2
+25ros03_01	mapflag	battleground	2
+25ros03_01	mapflag	nopenalty  
+25ros03_01	mapflag	nosave	SavePoint 
+25ros03_01	mapflag	nowarp  
+25ros03_01	mapflag	noteleport  
+25ros03_01	mapflag	nomemo  
+25ros03_01	mapflag	battleground	2 
+25ros03_01	mapflag	loadevent  
+25ros03_01	mapflag	noreturn  
+25ros03_01	mapflag	nobranch  
+25ros03_01	mapflag	noicewall  
+25ros03_01	mapflag	nodrop  	
   
 2025arena5	mapflag	nopenalty  
 2025arena5	mapflag	nosave	SavePoint  
 2025arena5	mapflag	nowarp  
 2025arena5	mapflag	noteleport  
 2025arena5	mapflag	nomemo  
-2025arena5	mapflag	gvg  
+2025arena5	mapflag	battleground	2  
 2025arena5	mapflag	loadevent  
 2025arena5	mapflag	noreturn  
 2025arena5	mapflag	nobranch  

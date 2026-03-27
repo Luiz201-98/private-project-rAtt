@@ -49,6 +49,63 @@ int32 battle_get_magic_element(struct block_list* src, struct block_list* target
 int32 battle_get_misc_element(struct block_list* src, struct block_list* target, uint16 skill_id, uint16 skill_lv, int32 mflag);
 static void battle_calc_defense_reduction(struct Damage* wd, struct block_list* src, struct block_list* target, uint16 skill_id, uint16 skill_lv);
 
+static bool battle_neutralbarrier_group_has_alive_gid( int32 gid )
+{
+	if (gid == 0)
+		return false;
+
+	std::shared_ptr<s_skill_unit_group> g = skill_id2group( gid );
+
+	if (g == nullptr || g->skill_id != NC_NEUTRALBARRIER)
+		return false;
+
+	for (int32 i = 0; i < g->unit_count; i++) {
+		if (g->unit[i].alive)
+			return true;
+	}
+	return false;
+}
+
+bool battle_neutralbarrier_group_has_alive( status_change_entry *sce )
+{
+	if (sce == nullptr || sce->val3 == 0)
+		return true; // no group id: only tile checks apply (skill_unit_onleft)
+
+	return battle_neutralbarrier_group_has_alive_gid( sce->val3 );
+}
+
+/**
+ * Ranged miss / immunity:
+ * - Caster (SC_NEUTRALBARRIER_MASTER): while the group still has any alive unit — no tile check (owner may stand on cleared side).
+ * - Others (SC_NEUTRALBARRIER): must be on a cell that still has a live barrier unit, and the group must still exist.
+ */
+bool battle_neutral_barrier_ranged_immunity_active( block_list *bl )
+{
+	status_change *sc = status_get_sc( bl );
+
+	if (sc == nullptr)
+		return false;
+
+	if (sc->getSCE( SC_NEUTRALBARRIER_MASTER )) {
+		int32 gid = sc->getSCE( SC_NEUTRALBARRIER_MASTER )->val2;
+
+		if (battle_neutralbarrier_group_has_alive_gid( gid ))
+			return true;
+	}
+	if (sc->getSCE( SC_NEUTRALBARRIER )) {
+		status_change_entry *sce = sc->getSCE( SC_NEUTRALBARRIER );
+
+		// Non-owner: only tiles that still show the barrier (yellow) grant ranged immunity.
+		if (map_find_skill_unit_oncell( bl, bl->x, bl->y, NC_NEUTRALBARRIER, nullptr, 0 ) == nullptr)
+			return false;
+
+		if (sce->val3 != 0)
+			return battle_neutralbarrier_group_has_alive_gid( sce->val3 );
+		return true; // legacy: tile already verified
+	}
+	return false;
+}
+
 /**
  * Returns the current/list skill used by the bl
  * @param bl
@@ -297,6 +354,22 @@ static t_tick battle_calc_walkdelay(block_list& bl, int64 damage, int16 div_, t_
 }
 
 /**
+ * Toy7 BG helpers
+ * Restrict BG statistics tracking to Toy Factory 7x7 map (25ros03_01).
+ */
+static bool toy7_is_bg_map(struct block_list *bl) {
+	if (bl == nullptr)
+		return false;
+
+	map_data *md = map_getmapdata(bl->m);
+	if (md == nullptr)
+		return false;
+
+	// Toy Factory 7x7 arena map
+	return strcmp(md->name, "25ros03_01") == 0;
+}
+
+/**
 * Deals damage without delay, applies additional effects and triggers monster events
 * This function is called from battle_delay_damage or battle_delay_damage_sub
 * All other instances of battle damage should also go through this function (i.e. anything that displays a damage number)
@@ -308,14 +381,14 @@ static t_tick battle_calc_walkdelay(block_list& bl, int64 damage, int16 div_, t_
 * @param skill_lv: Level of skill used
 * @param skill_id: ID of skill used
 * @param dmg_lv: State of the attack (miss, etc.)
-* @param attack_type: Type of the attack (BF_NORMAL|BF_SKILL|BF_SHORT|BF_LONG|BF_WEAPON|BF_MAGIC|BF_MISC)
+* @param attack_type: Type of the attack (BF_* flags, may include BF_KYRIEBLOCK; use int32 so nothing is truncated)
 * @param additional_effects: Whether additional effects should be applied (otherwise it's just damage+coma)
 * @param tick: Current tick
 * @param isspdamage: If the damage is done to SP
 * @param is_norm_attacked: If it should trigger the special normal attacked event on monsters
 * @return HP+SP+AP (0 if HP/SP/AP remained unchanged)
 */
-int32 battle_damage(struct block_list *src, struct block_list *target, int64 damage, int16 div_, uint16 skill_lv, uint16 skill_id, enum damage_lv dmg_lv, uint16 attack_type, bool additional_effects, t_tick tick, bool isspdamage, bool is_norm_attacked) {
+int32 battle_damage(struct block_list *src, struct block_list *target, int64 damage, int16 div_, uint16 skill_lv, uint16 skill_id, enum damage_lv dmg_lv, int32 attack_type, bool additional_effects, t_tick tick, bool isspdamage, bool is_norm_attacked) {
 	if (target == nullptr)
 		return 0;
 
@@ -325,11 +398,47 @@ int32 battle_damage(struct block_list *src, struct block_list *target, int64 dam
 
 	int32 dmg_change = 0;
 	map_session_data* sd = nullptr;
+	map_session_data* tsd = nullptr;
 
 	t_tick delay = battle_calc_walkdelay(*target, damage, div_, tick);
 
 	if (src)
 		sd = BL_CAST(BL_PC, src);
+	if (target)
+		tsd = BL_CAST(BL_PC, target);
+
+	// ================== Toy7 BG Damage/APM tracking ==================
+	// Track per‑player damage done/taken and a simple "actions" counter (APM source)
+	if (damage > 0 && sd && tsd && toy7_is_bg_map(target)) {
+		int reg_damage_done   = add_str("#TOY7_DAMAGE_DONE");
+		int reg_damage_taken  = add_str("#TOY7_DAMAGE_TAKEN");
+		int reg_apm           = add_str("#TOY7_APM");
+
+		int64 cur_val;
+
+		// Damage dealt by attacker
+		cur_val = (int64)pc_readglobalreg(sd, reg_damage_done);
+		cur_val += damage;
+		if (cur_val > INT32_MAX) cur_val = INT32_MAX;
+		if (cur_val < INT32_MIN) cur_val = INT32_MIN;
+		pc_setglobalreg(sd, reg_damage_done, (int32)cur_val);
+
+		// Damage taken by defender
+		cur_val = (int64)pc_readglobalreg(tsd, reg_damage_taken);
+		cur_val += damage;
+		if (cur_val > INT32_MAX) cur_val = INT32_MAX;
+		if (cur_val < INT32_MIN) cur_val = INT32_MIN;
+		pc_setglobalreg(tsd, reg_damage_taken, (int32)cur_val);
+
+		// Simple action counter for attacker (used as APM base)
+		cur_val = (int64)pc_readglobalreg(sd, reg_apm);
+		cur_val += 1;
+		if (cur_val > INT32_MAX) cur_val = INT32_MAX;
+		if (cur_val < INT32_MIN) cur_val = INT32_MIN;
+		pc_setglobalreg(sd, reg_apm, (int32)cur_val);
+	}
+	// ================== Fim Toy7 BG Damage/APM tracking ==================
+
 	map_freeblock_lock();
 	if (sd && battle_check_coma(*sd, *target, (e_battle_flag)attack_type))
 		dmg_change = status_damage(src, target, damage, 0, delay, 16, skill_id); // Coma attack
@@ -374,7 +483,7 @@ struct delay_damage {
 	uint16 skill_lv;
 	uint16 skill_id;
 	enum damage_lv dmg_lv;
-	uint16 attack_type;
+	int32 attack_type;
 	bool additional_effects;
 	enum bl_type src_type;
 	bool isspdamage;
@@ -1291,9 +1400,11 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 	if ((sce = sc->getSCE(SC_KYRIE)) && damage > 0) {
 		sce->val2 -= static_cast<int32>(cap_value(damage, INT_MIN, INT_MAX));
 		if (flag & BF_WEAPON || skill_id == TF_THROWSTONE) {
-			if (sce->val2 >= 0)
+			if (sce->val2 >= 0) {
 				damage = 0;
-			else
+				// Preserve "blocked by Kyrie" information for skill_additional_effect().
+				d->flag |= BF_KYRIEBLOCK;
+			} else
 				damage = -sce->val2;
 		}
 		// Pressure usually won't reach this code in pre-renewal and does consequently not remove Kyrie
@@ -1517,8 +1628,9 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 		return false;
 	}
 
-	// ATK_MISS Type
-	if ((sce = sc->getSCE(SC_AUTOGUARD)) && flag&BF_WEAPON && rnd() % 100 < sce->val2 && !skill_get_inf2(skill_id, INF2_IGNOREAUTOGUARD)) {
+	// ATK_MISS Type — Under Devotion the hit is still resolved on the devoted target, but Autoguard VFX/walkdelay show on the Paladin (caster)
+	if ((sce = sc->getSCE(SC_AUTOGUARD)) && (flag & BF_WEAPON || skill_id == NC_SELFDESTRUCTION) && rnd() % 100 < sce->val2
+		&& (!skill_get_inf2(skill_id, INF2_IGNOREAUTOGUARD) || skill_id == NC_SELFDESTRUCTION)) {
 		status_change_entry *sce_d = sc->getSCE(SC_DEVOTION);
 		block_list *d_bl;
 		int32 delay;
@@ -1539,7 +1651,7 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 			((d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == target->id) ||
 			(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[sce_d->val2] == target->id)) &&
 			check_distance_bl(target, d_bl, sce_d->val3))
-		{ //If player is target of devotion, show guard effect on the devotion caster rather than the target
+		{
 			clif_skill_nodamage(d_bl, *d_bl, CR_AUTOGUARD, sce->val1);
 			unit_set_walkdelay(d_bl, gettick(), delay, 1);
 			d->dmg_lv = ATK_MISS;
@@ -1559,7 +1671,7 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 		}
 	}
 
-	if (sc->getSCE(SC_NEUTRALBARRIER) && ((flag&(BF_LONG|BF_MAGIC)) == BF_LONG
+	if (battle_neutral_barrier_ranged_immunity_active(target) && ((flag&(BF_LONG|BF_MAGIC)) == BF_LONG
 #ifndef RENEWAL
 		|| skill_id == CR_ACIDDEMONSTRATION
 #endif
@@ -1759,10 +1871,30 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 		}
 #endif
 
+		bool redirected_by_devotion = false;
+		if (damage > 0) {
+			if (status_change_entry* devotion = tsc->getSCE(SC_DEVOTION); devotion && devotion->val1
+				&& skill_id != CR_REFLECTSHIELD
+#ifndef RENEWAL
+				&& skill_id != PA_PRESSURE
+#endif
+				) {
+				struct block_list* d_bl = map_id2bl(devotion->val1);
+				if (d_bl && (
+					(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == bl->id) ||
+					(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[devotion->val2] == bl->id)
+					) && check_distance_bl(bl, d_bl, devotion->val3))
+					redirected_by_devotion = true;
+			}
+		}
+
 		if( damage ) {
 			if( tsc->getSCE(SC_DEEPSLEEP) ) {
 				damage += damage / 2; // 1.5 times more damage while in Deep Sleep.
-				status_change_end(bl,SC_DEEPSLEEP);
+				// If Devotion will redirect this hit, the devoted target did not take real damage.
+				// Keep Deep Sleep active on the protected target.
+				if (!redirected_by_devotion)
+					status_change_end(bl,SC_DEEPSLEEP);
 			}
 			if( tsd && sd && tsc->getSCE(SC_CRYSTALIZE) && flag&BF_WEAPON ) {
 				switch(tsd->status.weapon) {
@@ -3236,7 +3368,7 @@ static bool is_attack_hitting(struct Damage* wd, struct block_list *src, struct 
 	else if (nk[NK_IGNOREFLEE])
 		return true;
 
-	if( tsc && tsc->getSCE(SC_NEUTRALBARRIER) && (wd->flag&(BF_LONG|BF_MAGIC)) == BF_LONG )
+	if( battle_neutral_barrier_ranged_immunity_active(target) && (wd->flag&(BF_LONG|BF_MAGIC)) == BF_LONG )
 		return false;
 
 	flee = tstatus->flee;
@@ -5458,8 +5590,8 @@ static int32 battle_calc_attack_skill_ratio(struct Damage* wd, struct block_list
 			RE_LVL_DMOD(100);
 			break;
 		case LG_PINPOINTATTACK:
-			skillratio += -100 + 100 * skill_lv + 5 * status_get_agi(src);
-			RE_LVL_DMOD(120);
+			// ATK% = [(100*skill_lv + AGI*5) * BaseLv / 120] (iRO wiki; BaseLv/120 folded in — do not use RE_LVL_DMOD)
+			skillratio += -100 + (100 * skill_lv + 5 * status_get_agi(src)) * status_get_lv(src) / 120;
 			break;
 		case LG_RAGEBURST:
 			if (sd && sd->spiritball_old)
@@ -10120,7 +10252,9 @@ struct Damage battle_calc_attack(int32 attack_type,struct block_list *bl,struct 
 	{	//Miss/Absorbed
 		//Weapon attacks should go through to cause additional effects.
 		if (d.dmg_lv == ATK_DEF /*&& attack_type&(BF_MAGIC|BF_MISC)*/) // Isn't it that additional effects don't apply if miss?
-			d.dmg_lv = ATK_MISS;
+			// PR_KYRIE can absorb all weapon damage but must not prevent on-hit debuffs (Curse, Sleep, etc.).
+			if (!(d.flag & BF_KYRIEBLOCK))
+				d.dmg_lv = ATK_MISS;
 		d.dmotion = 0;
 		if(bl->type == BL_PC)
 			d.div_ = 1;
@@ -10185,19 +10319,13 @@ int64 battle_calc_return_damage(struct block_list* tbl, struct block_list *src, 
 				if( (sce_d = tsc->getSCE(SC_DEVOTION)) && (d_bl = map_id2bl(sce_d->val1)) &&
 					((d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == tbl->id) ||
 					(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[sce_d->val2] == tbl->id)) )
-				{ //Don't reflect non-skill attack if has SC_REFLECTSHIELD from Devotion bonus inheritance
-					if( (!skill_id && battle_config.devotion_rdamage_skill_only && tsc->getSCE(SC_REFLECTSHIELD)->val4) ||
-						!check_distance_bl(tbl,d_bl,sce_d->val3) )
+				{
+					if( !check_distance_bl(tbl,d_bl,sce_d->val3) )
 						return 0;
 				}
 			}
 			if ( tsc->getSCE(SC_REFLECTSHIELD) && skill_id != WS_CARTTERMINATION && skill_id != NPC_MAXPAIN_ATK ) {
-				// Don't reflect non-skill attack if has SC_REFLECTSHIELD from Devotion bonus inheritance
-				if (!skill_id && battle_config.devotion_rdamage_skill_only && tsc->getSCE(SC_REFLECTSHIELD)->val4)
-					rdamage = 0;
-				else {
-					rdamage += damage * tsc->getSCE(SC_REFLECTSHIELD)->val2 / 100;
-				}
+				rdamage += damage * tsc->getSCE(SC_REFLECTSHIELD)->val2 / 100;
 			}
 
 			if (tsc->getSCE(SC_DEATHBOUND) && skill_id != WS_CARTTERMINATION && skill_id != GN_HELLS_PLANT_ATK && !status_bl_has_mode(src,MD_STATUSIMMUNE)) {
@@ -10782,6 +10910,13 @@ enum damage_lv battle_weapon_attack(struct block_list* src, struct block_list* t
 
 	map_freeblock_lock();
 
+	// SC_LUXANIMA auto-casts RK_STORMBLAST on normal attacks.
+	// When target has Devotion, skill_additional_effect() is skipped, so handle this proc here.
+	if (!vellum_damage && wd.dmg_lv >= ATK_BLOCK && !(wd.flag & BF_SKILL) && tsc && tsc->getSCE(SC_DEVOTION) && !status_isdead(*target) && sc) {
+		if (status_change_entry* sce_lux = sc->getSCE(SC_LUXANIMA); sce_lux && rnd() % 100 < sce_lux->val2)
+			skill_castend_nodamage_id(src, src, RK_STORMBLAST, 1, tick, 0);
+	}
+
 	if( !(tsc && tsc->getSCE(SC_DEVOTION)) && !vellum_damage && skill_check_shadowform(target, damage, wd.div_) ) {
 		if( !status_isdead(*target) )
 			skill_additional_effect(src, target, 0, 0, wd.flag, wd.dmg_lv, tick);
@@ -11295,6 +11430,10 @@ int32 battle_check_target( struct block_list *src, struct block_list *target,int
 			uint16 skill_id = battle_getcurrentskill(src);
 			if( !su || !su->group)
 				return 0;
+			// Netherworld is a floor effect: it must not be targetable or damageable.
+			// Players should not be able to hit/destroy the object on the ground.
+			if (su->group->skill_id == WM_POEMOFNETHERWORLD)
+				return 0;
 			if( skill_get_inf2(su->group->skill_id, INF2_ISTRAP) && su->group->unit_id != UNT_USED_TRAPS) {
 				if (!skill_id || su->group->skill_id == NPC_REVERBERATION || su->group->skill_id == WM_POEMOFNETHERWORLD) {
 					;
@@ -11754,6 +11893,7 @@ static const struct _battle_data {
 	{ "max_aspd",                           &battle_config.max_aspd,                        190,    100,    199,            },
 	{ "max_third_aspd",                     &battle_config.max_third_aspd,                  193,    100,    199,            },
 	{ "max_summoner_aspd",                  &battle_config.max_summoner_aspd,               193,    100,    199,            },
+	{ "renewal_aspd_percent_ref",           &battle_config.renewal_aspd_percent_ref,        195,    150,    220,            },
 	{ "max_walk_speed",                     &battle_config.max_walk_speed,                  300,    100,    100*DEFAULT_WALK_SPEED, },
 	{ "max_lv",                             &battle_config.max_lv,                          99,     0,      MAX_LEVEL,      },
 	{ "aura_lv",                            &battle_config.aura_lv,                         99,     0,      INT_MAX,        },
@@ -11823,6 +11963,7 @@ static const struct _battle_data {
 	{ "devotion_level_difference",          &battle_config.devotion_level_difference,       10,     0,      INT_MAX,        },
 	{ "player_skill_partner_check",         &battle_config.player_skill_partner_check,      1,      0,      1,              },
 	{ "invite_request_check",               &battle_config.invite_request_check,            1,      0,      1,              },
+	{ "player_trade",                       &battle_config.player_trade,                    1,      0,      1,              },
 	{ "skill_removetrap_type",              &battle_config.skill_removetrap_type,           0,      0,      1,              },
 	{ "disp_experience",                    &battle_config.disp_experience,                 0,      0,      1,              },
 	{ "disp_zeny",                          &battle_config.disp_zeny,                       0,      0,      1,              },
@@ -11988,6 +12129,7 @@ static const struct _battle_data {
 	{ "auction_maximumprice",               &battle_config.auction_maximumprice,            500000000, 0,   MAX_ZENY,       },
 	{ "homunculus_auto_vapor",              &battle_config.homunculus_auto_vapor,           80,     0,      100,            },
 	{ "display_status_timers",              &battle_config.display_status_timers,           1,      0,      1,              },
+	{ "status_change_debug",                &battle_config.status_change_debug,             0,      0,      2,              },
 	{ "skill_add_heal_rate",                &battle_config.skill_add_heal_rate,           487,      0,      INT_MAX,        },
 	{ "eq_single_target_reflectable",       &battle_config.eq_single_target_reflectable,    1,      0,      1,              },
 	{ "invincible.nodamage",                &battle_config.invincible_nodamage,             0,      0,      1,              },

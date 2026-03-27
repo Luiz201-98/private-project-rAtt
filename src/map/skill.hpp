@@ -583,6 +583,10 @@ int32 skill_delunitgroup_(std::shared_ptr<s_skill_unit_group> group, const char*
 void skill_clear_unitgroup(struct block_list *src);
 int32 skill_clear_group(block_list *bl, uint8 flag);
 void ext_skill_unit_onplace(struct skill_unit *unit, struct block_list *bl, t_tick tick);
+/// Ends Bloody Lust (Berserk + SC__BLOODYLUST) when the PC is no longer on any Bloody layout cell. Uses SC__BLOODYLUST (Berserk val3 is overwritten after apply).
+void skill_bloodylust_leave_area_check(struct block_list *bl, t_tick tick);
+/// True if bl is standing on any cell of an active Bloody Lust layout (same footprint as ground units).
+bool skill_bloodylust_pc_in_any_bloody_footprint(struct block_list *bl);
 int64 skill_unit_ondamaged(struct skill_unit *unit,int64 damage);
 
 // Skill unit visibility [Cydh]
@@ -612,6 +616,11 @@ bool skill_trap_owner_can_share_cell(struct block_list *walker, int16 x, int16 y
 int32 skill_check_pc_partner(map_session_data *sd, uint16 skill_id, uint16 *skill_lv, int32 range, int32 cast_flag);
 int32 skill_unit_move(struct block_list *bl,t_tick tick,int32 flag);
 void skill_unit_move_unit_group( std::shared_ptr<s_skill_unit_group> group, int16 m,int16 dx,int16 dy);
+void skill_neutralbarrier_move_group_slide_delta( std::shared_ptr<s_skill_unit_group> group, int16 m, int32 dx32, int32 dy32 );
+void skill_neutralbarrier_snap_group_to_xy( std::shared_ptr<s_skill_unit_group> group, int16 m, int16 tx, int16 ty );
+/// Normal walk follow: tile delta when field is close; rigid pull when centroid is far (tile-only never closes gap after slide).
+void skill_neutralbarrier_move_follow_pc_step( std::shared_ptr<s_skill_unit_group> group, int16 m, int32 x0, int32 y0, int32 x1, int32 y1 );
+std::shared_ptr<s_skill_unit_group> skill_neutralbarrier_resolve_group_for_pc( map_session_data *sd );
 void skill_unit_move_unit(struct block_list *bl, int32 dx, int32 dy);
 
 int32 skill_sit(map_session_data *sd, bool sitting);
@@ -643,7 +652,7 @@ int32 skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,u
 int32 skill_castend_damage_id( struct block_list* src, struct block_list *bl,uint16 skill_id,uint16 skill_lv,t_tick tick,int32 flag );
 int32 skill_castend_pos2( struct block_list *src, int32 x,int32 y,uint16 skill_id,uint16 skill_lv,t_tick tick,int32 flag);
 
-bool skill_blockpc_start(map_session_data &sd, uint16 skill_id, t_tick tick);
+bool skill_blockpc_start(map_session_data &sd, uint16 skill_id, t_tick tick, bool notify_client = true);
 void skill_blockpc_clear(map_session_data &sd);
 TIMER_FUNC(skill_blockpc_end);
 bool skill_blockhomun_start(homun_data &hd, uint16 skill_id, t_tick tick);

@@ -146,7 +146,6 @@ Body:
     DurationLookup: NPC_SLEEPATTACK
     States:
       NoMove: true
-      NoCast: true
       NoAttack: true
     Opt1: Sleep
     Flags:
@@ -338,6 +337,7 @@ Body:
       NoDispell: true
       NoClearance: true
     EndOnStart:
+      Cloaking: true
       Closeconfine: true
       Closeconfine2: true
   - Status: Cloaking
@@ -358,6 +358,8 @@ Body:
       NoBanishingBuster: true
       NoDispell: true
       NoClearance: true
+    EndOnStart:
+      Hiding: true
   - Status: Encpoison
     Icon: EFST_ENCHANTPOISON
     DurationLookup: AS_ENCHANTPOISON
@@ -777,6 +779,8 @@ Body:
       NoBanishingBuster: true
       NoClearance: true
       RemoveOnChangeMap: true
+    Fail:
+      Hovering: true
   - Status: Keeping
     DurationLookup: NPC_KEEPING
     CalcFlags:
@@ -2556,6 +2560,8 @@ Body:
     EndOnStart:
       Enchantarms: true
       Aspersio: true
+      Chasewalk: true
+      Chasewalk2: true
   - Status: Magicalattack
     DurationLookup: NPC_MAGICALATTACK
     CalcFlags:
@@ -3023,6 +3029,9 @@ Body:
     Fail:
       Refresh: true
       Inspiration: true
+    EndOnStart:
+      Freezing: true
+      Freeze: true
   - Status: Freezing
     Icon: EFST_FROSTMISTY
     DurationLookup: WL_FROSTMISTY
@@ -4014,7 +4023,6 @@ Body:
       NoCast: true
       NoChat: true
       NoMove: true
-      NoConsumeItem: true
       NoAttack: true
     Opt1: Sleep
     Flags:
@@ -4581,6 +4589,8 @@ Body:
       bonus bMaxSPrate,5;
   - Status: Extract_Salamine_Juice
     Icon: EFST_EXTRACT_SALAMINE_JUICE
+    CalcFlags:
+      Aspd: true
     Flags:
       NoClearbuff: true
       NoDispell: true

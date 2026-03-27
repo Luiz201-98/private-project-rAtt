@@ -1,0 +1,315 @@
+//===== rAthena Script =======================================
+//= Mestre das Montarias (3rd Trans) - turbo_room - ROS 7X7
+//= Texto em ASCII sem acentos: evita '?' no jogo se o .txt for salvo como UTF-8.
+//= Variavel permanente: #ROS2026_MOUNT_PREF (codigos no bloco L_SavePref)
+//===== Mapa: turbo_room,95,123
+//============================================================
+turbo_room,95,123,4	script	Mestre das Montarias#ros2026	105,{
+
+	if (ismounting()) {
+		mes "[Mestre das Montarias]";
+		mes "Para preparacao competitiva no ROS 7X7, retire primeiro a montaria premium.";
+		mes "Assim evitamos conflito com montarias de classe.";
+		close;
+	}
+
+	set .@c, Class;
+	if (.@c != 4060 && .@c != 4061 && .@c != 4062 && .@c != 4063 && .@c != 4064 && .@c != 4065
+		&& .@c != 4073 && .@c != 4074 && .@c != 4075 && .@c != 4076 && .@c != 4077 && .@c != 4078 && .@c != 4079) {
+		mes "[Mestre das Montarias]";
+		mes "Este posto atende apenas classes de terceira transcendente homologadas para o servidor.";
+		mes "Sua classe atual nao consta na lista de atendimento.";
+		close;
+	}
+
+	mes "[Mestre das Montarias]";
+	mes "Bem-vindo. Servidor competitivo ROS 7X7: padronizamos montarias e companheiros para partidas serias.";
+	mes "As habilidades exigidas precisam estar aprendidas e com ponto investido, conforme a regra do emulador.";
+	mes "Como posso ajudar?";
+	next;
+	switch(select("Aplicar ou trocar montaria agora:Registrar preferencia (Curandeira):Regras Carrinho e Mado:Encerrar")) {
+	case 1:
+		callsub L_Apply;
+		end;
+	case 2:
+		callsub L_SavePref;
+		end;
+	case 3:
+		mes "[Mestre das Montarias]";
+		mes "Mecanico: Carrinho de Comercio e Mado Gear sao mutuamente exclusivos no emulador.";
+		mes "Ao solicitar um, o outro sera removido se estiver ativo, garantindo estado valido para a arena.";
+		next;
+		mes "[Mestre das Montarias]";
+		mes "Ranger: Falcao e Warg nunca ficam ativos juntos. A escolha reflete seu preparo tatico no ROS 7X7.";
+		close;
+	default:
+		mes "[Mestre das Montarias]";
+		mes "Boa sorte nas partidas.";
+		close;
+	}
+
+L_Apply:
+		switch (Class) {
+		case 4060:
+			if (!getskilllv("RK_DRAGONTRAINING")) {
+				mes "[Mestre das Montarias]";
+				mes "E obrigatorio possuir ^0000ffTreinamento com Dragao^000000 (RK_DRAGONTRAINING) com pelo menos 1 nivel.";
+				close;
+			}
+			if (checkdragon()) {
+				mes "[Mestre das Montarias]";
+				mes "Voce ja esta com o dragao convocado.";
+				close;
+			}
+			setdragon;
+			mes "[Mestre das Montarias]";
+			mes "Dragao liberado. Mantenha-o sob controle durante o combate.";
+			close;
+
+		case 4073:
+			if (!getskilllv("KN_RIDING")) {
+				mes "[Mestre das Montarias]";
+				mes "Aprenda ^0000ffMontaria^000000 (KN_RIDING) antes de solicitar a montaria.";
+				close;
+			}
+			if (checkriding()) {
+				mes "[Mestre das Montarias]";
+				mes "Voce ja utiliza a montaria de grifo.";
+				close;
+			}
+			setriding;
+			mes "[Mestre das Montarias]";
+			mes "Montaria de grifo aplicada com sucesso.";
+			close;
+
+		case 4062:
+			callsub L_RangerApply;
+			return;
+
+		case 4064:
+			callsub L_MechApply;
+			return;
+
+		case 4078:
+			if (!getskilllv("MC_PUSHCART")) {
+				mes "[Mestre das Montarias]";
+				mes "Desbloqueie ^0000ffEmpurrar Carrinho^000000 (MC_PUSHCART) para usar este servico.";
+				close;
+			}
+			if (checkcart()) {
+				mes "[Mestre das Montarias]";
+				mes "Voce ja possui carrinho ativo.";
+				close;
+			}
+			setcart;
+			mes "[Mestre das Montarias]";
+			mes "Carrinho aplicado.";
+			close;
+
+		case 4061:
+		case 4063:
+		case 4065:
+		case 4074:
+		case 4075:
+		case 4076:
+		case 4077:
+		case 4079:
+			mes "[Mestre das Montarias]";
+			mes "Sua classe nao utiliza os mesmos recursos de montaria ou carrinho que Cavaleiro Runico,";
+			mes "Guarda Real, Ranger, Mecanico ou Genetico. Nada a disponibilizar por aqui.";
+			close;
+		}
+		return;
+
+L_RangerApply:
+		mes "[Mestre das Montarias]";
+		mes "Ranger: escolha um unico modo: Falcao ou Warg montado, conforme seu planejamento para o ROS 7X7.";
+		next;
+		switch(select("Falcao (Domesticacao de Falcao):Warg montado (Dominio sobre Warg + Montaria em Warg):Cancelar")) {
+		case 1:
+			if (!getskilllv("HT_FALCON")) {
+				mes "[Mestre das Montarias]";
+				mes "Invista ao menos 1 ponto em ^0000ffDomesticacao de Falcao^000000 (HT_FALCON).";
+				close;
+			}
+			if (checkwug()) {
+				setoption (OPTION_WUG|OPTION_WUGRIDER), 0;
+			}
+			if (checkfalcon()) {
+				mes "[Mestre das Montarias]";
+				mes "O falcao ja esta ativo.";
+				close;
+			}
+			setfalcon;
+			mes "[Mestre das Montarias]";
+			mes "Falcao liberado.";
+			close;
+		case 2:
+			if (!getskilllv("RA_WUGMASTERY") || !getskilllv("RA_WUGRIDER")) {
+				mes "[Mestre das Montarias]";
+				mes "Sao necessarios ^0000ffDominio sobre Warg^000000 (RA_WUGMASTERY) e";
+				mes "^0000ffMontaria em Warg^000000 (RA_WUGRIDER), cada um com pelo menos 1 nivel.";
+				close;
+			}
+			setfalcon 0;
+			setoption OPTION_WUGRIDER, 1;
+			mes "[Mestre das Montarias]";
+			mes "Warg montado. Bom desempenho na arena.";
+			close;
+		default:
+			mes "[Mestre das Montarias]";
+			mes "Quando precisar, estarei a disposicao.";
+			close;
+		}
+
+L_MechApply:
+		mes "[Mestre das Montarias]";
+		mes "Mecanico: informe qual configuracao deseja para o confronto: Carrinho ou Mado Gear.";
+		next;
+		switch(select("Carrinho (MC_PUSHCART):Mado Gear (NC_MADOLICENCE):Cancelar")) {
+		case 1:
+			if (!getskilllv("MC_PUSHCART")) {
+				mes "[Mestre das Montarias]";
+				mes "Aprenda ^0000ffEmpurrar Carrinho^000000 (MC_PUSHCART) para continuar.";
+				close;
+			}
+			if (checkmadogear())
+				setmadogear 0;
+			if (checkcart()) {
+				mes "[Mestre das Montarias]";
+				mes "Carrinho ja esta em uso.";
+				close;
+			}
+			setcart;
+			mes "[Mestre das Montarias]";
+			mes "Carrinho ativo. Mado Gear foi desativado caso estivesse ligado.";
+			close;
+		case 2:
+			if (!getskilllv("NC_MADOLICENCE")) {
+				mes "[Mestre das Montarias]";
+				mes "Obtenha ^0000ffLicenca Mado^000000 (NC_MADOLICENCE) antes de prosseguir.";
+				close;
+			}
+			if (checkcart())
+				setcart 0;
+			if (checkmadogear()) {
+				mes "[Mestre das Montarias]";
+				mes "Voce ja esta operando o Mado Gear.";
+				close;
+			}
+			setmadogear;
+			mes "[Mestre das Montarias]";
+			mes "Mado Gear ativo. Carrinho foi removido se necessario.";
+			close;
+		default:
+			mes "[Mestre das Montarias]";
+			mes "Operacao cancelada.";
+			close;
+		}
+
+L_SavePref:
+		switch (Class) {
+		case 4062:
+			mes "[Mestre das Montarias]";
+			mes "Defina qual opcao a Curandeira devera priorizar apos o restabelecimento (ROS 7X7).";
+			next;
+			switch(select("Falcao (registro 1):Warg (registro 2):Limpar registro (0)")) {
+			case 1:
+				if (!getskilllv("HT_FALCON")) {
+					mes "[Mestre das Montarias]";
+					mes "Sem HT_FALCON nao e possivel registrar essa preferencia.";
+					close;
+				}
+				set #ROS2026_MOUNT_PREF, 1;
+				break;
+			case 2:
+				if (!getskilllv("RA_WUGMASTERY") || !getskilllv("RA_WUGRIDER")) {
+					mes "[Mestre das Montarias]";
+					mes "Complete as habilidades de Warg antes de registrar esta opcao.";
+					close;
+				}
+				set #ROS2026_MOUNT_PREF, 2;
+				break;
+			default:
+				set #ROS2026_MOUNT_PREF, 0;
+			}
+			mes "[Mestre das Montarias]";
+			mes "Registro salvo (#ROS2026_MOUNT_PREF). A Curandeira aplicara conforme o script do servidor.";
+			close;
+
+		case 4064:
+			mes "[Mestre das Montarias]";
+			mes "Qual modo deseja priorizar na Curandeira: Carrinho ou Mado?";
+			next;
+			switch(select("Carrinho (10):Mado (11):Limpar (0)")) {
+			case 1:
+				if (!getskilllv("MC_PUSHCART")) {
+					mes "[Mestre das Montarias]";
+					mes "MC_PUSHCART e requisito para salvar o carrinho.";
+					close;
+				}
+				set #ROS2026_MOUNT_PREF, 10;
+				break;
+			case 2:
+				if (!getskilllv("NC_MADOLICENCE")) {
+					mes "[Mestre das Montarias]";
+					mes "NC_MADOLICENCE e requisito para salvar o Mado.";
+					close;
+				}
+				set #ROS2026_MOUNT_PREF, 11;
+				break;
+			default:
+				set #ROS2026_MOUNT_PREF, 0;
+			}
+			mes "[Mestre das Montarias]";
+			mes "Preferencia registrada. Lembre-se: apenas um estado fica ativo por vez.";
+			close;
+
+		case 4060:
+			if (!getskilllv("RK_DRAGONTRAINING")) {
+				mes "[Mestre das Montarias]";
+				mes "Sem Treinamento com Dragao nao ha preferencia valida a registrar.";
+				close;
+			}
+			set #ROS2026_MOUNT_PREF, 20;
+			mes "[Mestre das Montarias]";
+			mes "Registrado: Dragao (codigo 20).";
+			close;
+
+		case 4073:
+			if (!getskilllv("KN_RIDING")) {
+				mes "[Mestre das Montarias]";
+				mes "Sem Montaria (KN_RIDING) nao ha registro aplicavel.";
+				close;
+			}
+			set #ROS2026_MOUNT_PREF, 30;
+			mes "[Mestre das Montarias]";
+			mes "Registrado: Grifo (codigo 30).";
+			close;
+
+		case 4078:
+			if (!getskilllv("MC_PUSHCART")) {
+				mes "[Mestre das Montarias]";
+				mes "E necessario possuir Empurrar Carrinho para registrar.";
+				close;
+			}
+			set #ROS2026_MOUNT_PREF, 40;
+			mes "[Mestre das Montarias]";
+			mes "Registrado: Carrinho para Genetico (codigo 40).";
+			close;
+
+		default:
+			mes "[Mestre das Montarias]";
+			mes "Para sua classe nao existe opcao adicional de registro neste terminal.";
+			close;
+		}
+		return;
+
+OnInit:
+	initnpctimer;
+	end;
+OnTimer1000:
+	showscript "Montarias ROS 7X7";
+	setnpctimer 0;
+	end;
+}

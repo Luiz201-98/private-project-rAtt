@@ -7,11 +7,11 @@
 // Requeridos: .@membros_min = 2 (altere para 7 para 7x7 de verdade)
 
 turbo_room,106,117,5	script	Time 1 7x7::WR_Azul	733,{
-	// Se já existe um duelo em andamento, bloqueia novos registros
+	// Se ja existe um duelo em andamento, bloqueia novos registros
 	if ($7x7_in_match) {
 		mes "[ ^0055FFTime 1 7x7^000000 ]";
-		mes "Já existe um confronto em andamento.";
-		mes "Aguarde o término para registrar sua guild novamente.";
+		mes "Ja existe um confronto em andamento.";
+		mes "Aguarde o termino para registrar sua guild novamente.";
 		close;
 	}
 
@@ -100,11 +100,11 @@ turbo_room,106,117,5	script	Time 1 7x7::WR_Azul	733,{
 		set .@blue_aid,   $7x7_blue_leader_aid;
 		set .@red_aid,    $7x7_red_leader_aid;
 
-		// Marca que há um duelo em andamento
+		// Marca que ha um duelo em andamento
 		set $7x7_in_match, 1;
 
-		// Teleporta só os líderes para gon_test 55,94
-		// e marca o lado (Azul/Vermelho) em variável de conta #7x7_side
+		// Teleporta so os lideres para gon_test 55,94
+		// e marca o lado (Azul/Vermelho) em variavel de conta #7x7_side
 		if (attachrid(.@blue_aid)) {
 			set #7x7_side, 1; // Azul
 			warp "gon_test",55,94;
@@ -117,7 +117,7 @@ turbo_room,106,117,5	script	Time 1 7x7::WR_Azul	733,{
 		}
 
 		announce "O Confronto entre [" + .@blue_name$ + "] VS [" + .@red_name$ + "] Foi Agendado!!", 0, 0xFFA500;
-		announce "Os L�deres est�o decidindo o mapa, aguarde!", 0, 0xFFFF00;
+		announce "Os Lideres estao decidindo o mapa, aguarde!", 0, 0xFFFF00;
 		end;
 	}
 
@@ -175,11 +175,11 @@ OnInit:
 
 // ------------------------------------------------------------------------------
 turbo_room,93,117,5	script	Time 2 7x7::WR_Vermelho	734,{
-	// Se já existe um duelo em andamento, bloqueia novos registros
+	// Se ja existe um duelo em andamento, bloqueia novos registros
 	if ($7x7_in_match) {
 		mes "[ ^FF0000Time 2 7x7^000000 ]";
-		mes "Já existe um confronto em andamento.";
-		mes "Aguarde o término para registrar sua guild novamente.";
+		mes "Ja existe um confronto em andamento.";
+		mes "Aguarde o termino para registrar sua guild novamente.";
 		close;
 	}
 
@@ -286,7 +286,7 @@ mes "Registrar a guild ^FF0000" + getguildname(.@guild_id) + "^000000 no Time 2?
 		}
 
 		announce "O Confronto entre [" + .@blue_name$ + "] VS [" + .@red_name$ + "] Foi Agendado!!", 0, 0xFFA500;
-		announce "Os L�deres est�o decidindo o mapa, aguarde!", 0, 0xFFFF00;
+		announce "Os Lideres estao decidindo o mapa, aguarde!", 0, 0xFFFF00;
 		end;
 	}
 

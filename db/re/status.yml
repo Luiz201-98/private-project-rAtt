@@ -90,6 +90,7 @@ Body:
       BossResist: true
       StopAttacking: true
     Fail:
+      Inspiration: true
       Whiteimprison: true
       Freeze: true
       Stun: true
@@ -151,10 +152,10 @@ Body:
   - Status: Sleep
     DurationLookup: NPC_SLEEPATTACK
     States:
+      NoConsumeItem: false
       NoMove: true
-      NoCast: true
       NoAttack: true
-    Opt1: Sleep
+      NoCast: true
     Flags:
       SendOption: true
       BossResist: true
@@ -164,9 +165,8 @@ Body:
     Fail:
       Refresh: true
       Inspiration: true
-      Gvg_Sleep: true
-      Sleep: true
       Protection: true
+      Deepsleep: true
   - Status: Poison
     DurationLookup: NPC_POISON
     CalcFlags:
@@ -356,9 +356,8 @@ Body:
       RemoveOnDamaged: true
       RemoveOnChangeMap: true
       NoBanishingBuster: true
-      NoDispell: true
-      NoClearance: true
     EndOnStart:
+      Cloaking: true
       Closeconfine: true
       Closeconfine2: true
   - Status: Cloaking
@@ -379,6 +378,8 @@ Body:
       NoBanishingBuster: true
       NoDispell: true
       NoClearance: true
+    EndOnStart:
+      Hiding: true
   - Status: Encpoison
     Icon: EFST_ENCHANTPOISON
     DurationLookup: AS_ENCHANTPOISON
@@ -804,6 +805,8 @@ Body:
       NoBanishingBuster: true
       NoClearance: true
       RemoveOnChangeMap: true
+    Fail:
+      Hovering: true
   - Status: Keeping
     DurationLookup: NPC_KEEPING
     CalcFlags:
@@ -2674,6 +2677,8 @@ Body:
     EndOnStart:
       Enchantarms: true
       Aspersio: true
+      Chasewalk: true
+      Chasewalk2: true
   - Status: Magicalattack
     DurationLookup: NPC_MAGICALATTACK
     CalcFlags:
@@ -3136,6 +3141,9 @@ Body:
       Refresh: true
       Inspiration: true
       Whiteimprison: true
+    EndOnStart:
+      Freezing: true
+      Freeze: true
   - Status: Freezing
     Icon: EFST_FROSTMISTY
     DurationLookup: WL_FROSTMISTY
@@ -3159,6 +3167,8 @@ Body:
       Inspiration: true
       Warmer: true
       Freezing: true
+    EndOnStart:
+      Burning: true
   - Status: Enchantblade
     Icon: EFST_ENCHANTBLADE
     DurationLookup: RK_ENCHANTBLADE
@@ -3350,6 +3360,8 @@ Body:
       StopWalking: true
       StopAttacking: true
       StopCasting: true
+    Fail:
+      Inspiration: true
     EndOnStart:
       Freezing: true
   - Status: Marshofabyss
@@ -4139,6 +4151,8 @@ Body:
       Int: true
       Dex: true
       Luk: true
+    Fail:
+      Inspiration: true
     EndOnStart:
       Swingdance: true
       Symphonyoflover: true
@@ -4172,7 +4186,6 @@ Body:
     States:
       NoCast: true
       NoChat: true
-      NoConsumeItem: true
       NoMove: true
       NoAttack: true
     Opt1: Sleep
@@ -4195,6 +4208,7 @@ Body:
       Inspiration: true
       Deepsleep: true
     EndOnStart:
+      Sleep: true
       Dancing: true
       Voiceofsiren: true
       Gloomyday: true
@@ -4748,6 +4762,8 @@ Body:
       bonus bMaxSPrate,5;
   - Status: Extract_Salamine_Juice
     Icon: EFST_EXTRACT_SALAMINE_JUICE
+    CalcFlags:
+      Aspd: true
     Flags:
       NoClearbuff: true
       NoDispell: true
@@ -4947,6 +4963,7 @@ Body:
     Flags:
       Debuff: true
       NoSave: true
+      NoDispell: true
   - Status: Circle_Of_Fire
     Icon: EFST_CIRCLE_OF_FIRE
     Flags:
@@ -5173,6 +5190,8 @@ Body:
       NoBanishingBuster: true
       NoClearance: true
       RemoveElementalOption: true
+    Fail:
+      Inspiration: true
   - Status: Chilly_Air_Option
     Icon: EFST_CHILLY_AIR_OPTION
     DurationLookup: EL_CHILLY_AIR
@@ -5186,6 +5205,8 @@ Body:
       NoSave: true
       RemoveElementalOption: true
       SendVal2: true
+    Fail:
+      Inspiration: true
   - Status: Gust
     Icon: EFST_GUST
     Flags:
@@ -6144,8 +6165,6 @@ Body:
     Options:
       Invisible: true
     Flags:
-      SendLook: true
-      UnitMove: true
       OnTouch: true
       StopAttacking: true
     EndOnEnd:
@@ -6165,6 +6184,7 @@ Body:
     Flags:
       StopWalking: true
     Fail:
+      Inspiration: true
       _Chaos: true
   - Status: Chasewalk2
     Icon: EFST_CHASEWALK2

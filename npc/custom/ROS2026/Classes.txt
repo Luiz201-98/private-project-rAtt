@@ -1,140 +1,181 @@
-turbo_room,99,120,4	script	Classes	10387,{        
-    if( Class != 0 ){        
-         message strcharinfo(0),"Você ja escolheu sua classe!";         
-        end;        
-    }        
-    if (sex == 1) {        
-    .@i = select( .MenuM$ ) - 1;        
-    	if( select( "Mudar para "+jobname( .JobListM[.@i] )+"?:Cancel" ) == 1 ){        
-            		jobchange .JobListM[.@i];        
-                     goto changejob;        
-        }        
-    }else{        
-    .@i = select( .MenuF$ ) - 1;        
-    	if( select( "Mudar para "+jobname( .JobListF[.@i] )+"?:Cancel" ) == 1 ){        
-            		jobchange .JobListF[.@i];        
-                     goto changejob;        
-        }        
-    }        
-    end;        
-      
-changejob:        
-	BaseLevel = .BaseLevel;        
-	JobLevel = .JobLevel;          
-    resetstatus;      
-    SkillPoint = 186;  // D? 128 pontos de habilidade    
-    callsub GetPlatinumSkills;  // Usando callsub em vez de callfunc
-	// ENTREGA DE ITENS (SEM CONSUMÍVEIS)
+turbo_room,99,120,4	script	Classes	10387,{
+	if( Class != 0 ){
+		message strcharinfo(0),"Voce ja escolheu sua classe!";
+		end;
+	}
+	if (sex == 1) {
+		.@i = select( .MenuM$ ) - 1;
+		if( select( "Mudar para "+.NameM$[.@i]+"?:Cancel" ) == 1 ){
+			jobchange .JobListM[.@i];
+			goto changejob;
+		}
+	}else{
+		.@i = select( .MenuF$ ) - 1;
+		if( select( "Mudar para "+.NameF$[.@i]+"?:Cancel" ) == 1 ){
+			jobchange .JobListF[.@i];
+			goto changejob;
+		}
+	}
+	end;
+
+changejob:
+	BaseLevel = .BaseLevel;
+	JobLevel = .JobLevel;
+	resetstatus;
+	SkillPoint = 186;  // Da 128 pontos de habilidade
+	callsub GetPlatinumSkills;
+	// ENTREGA DE ITENS (SEM CONSUMIVEIS)
 	callfunc "F_GetITEM_NoCons";
-    end;        
-      
-// Fun??o Platinum Skills embutida  
-GetPlatinumSkills:  
-	skill "NV_FIRSTAID",1,SKILL_PERM;  
-	switch (BaseClass) {  
-		case Job_Novice:  
-			if (Class != Job_Super_Novice)  
-				skill "NV_TRICKDEAD",1,SKILL_PERM;  
-			break;  
-		case Job_Swordman:  
-			skill "SM_MOVINGRECOVERY",1,SKILL_PERM;  
-			skill "SM_FATALBLOW",1,SKILL_PERM;  
-			skill "SM_AUTOBERSERK",1,SKILL_PERM;  
-			break;  
-		case Job_Mage:  
-			skill "MG_ENERGYCOAT",1,SKILL_PERM;  
-			break;  
-		case Job_Archer:  
-			skill "AC_MAKINGARROW",1,SKILL_PERM;  
-			skill "AC_CHARGEARROW",1,SKILL_PERM;  
-			break;  
-		case Job_Acolyte:  
-			skill "AL_HOLYLIGHT",1,SKILL_PERM;  
-			break;  
-		case Job_Merchant:  
-			skill "MC_CARTREVOLUTION",1,SKILL_PERM;  
-			skill "MC_CHANGECART",1,SKILL_PERM;  
-			skill "MC_LOUD",1,SKILL_PERM;  
-			if(PACKETVER >= 20150826)  
-				skill "MC_CARTDECORATE",1,SKILL_PERM;  
-			break;  
-		case Job_Thief:  
-			skill "TF_SPRINKLESAND",1,SKILL_PERM;  
-			skill "TF_BACKSLIDING",1,SKILL_PERM;  
-			skill "TF_PICKSTONE",1,SKILL_PERM;  
-			skill "TF_THROWSTONE",1,SKILL_PERM;  
-			break;  
-		default:  
-			break;  
-	}  
-	switch (BaseJob) {  
-		case Job_Knight:  
-			skill "KN_CHARGEATK",1,SKILL_PERM;  
-			break;  
-		case Job_Priest:  
-			skill "PR_REDEMPTIO",1,SKILL_PERM;  
-			break;  
-		case Job_Wizard:  
-			skill "WZ_SIGHTBLASTER",1,SKILL_PERM;  
-			break;  
-		case Job_Blacksmith:  
-			skill "BS_UNFAIRLYTRICK",1,SKILL_PERM;  
-			skill "BS_GREED",1,SKILL_PERM;  
-			break;  
-		case Job_Hunter:  
-			skill "HT_PHANTASMIC",1,SKILL_PERM;  
-			break;  
-		case Job_Assassin:  
-			skill "AS_SONICACCEL",1,SKILL_PERM;  
-			skill "AS_VENOMKNIFE",1,SKILL_PERM;  
-			break;  
-		case Job_Crusader:  
-			skill "CR_SHRINK",1,SKILL_PERM;  
-			break;  
-		case Job_Monk:  
-			skill "MO_KITRANSLATION",1,SKILL_PERM;  
-			skill "MO_BALKYOUNG",1,SKILL_PERM;  
-			break;  
-		case Job_Sage:  
-			skill "SA_CREATECON",1,SKILL_PERM;  
-			skill "SA_ELEMENTWATER",1,SKILL_PERM;  
-			skill "SA_ELEMENTGROUND",1,SKILL_PERM;  
-			skill "SA_ELEMENTFIRE",1,SKILL_PERM;  
-			skill "SA_ELEMENTWIND",1,SKILL_PERM;  
-			break;  
-		case Job_Rogue:  
-			skill "RG_CLOSECONFINE",1,SKILL_PERM;  
-			break;  
-		case Job_Alchemist:  
-			skill "AM_BIOETHICS",1,SKILL_PERM;  
-			break;  
-		case Job_Bard:  
-			skill "BA_PANGVOICE",1,SKILL_PERM;  
-			break;  
-		case Job_Dancer:  
-			skill "DC_WINKCHARM",1,SKILL_PERM;  
-			break;  
-		default:  
-			break;  
-	}  
-	return;  
-      
-OnInit:        
-    setarray .JobListM[0],4060,4073,4061,4074,4062,4075,4063,4077,4064,4078,4065,4079;        
-    setarray .JobListF[0],4060,4073,4061,4074,4062,4076,4063,4077,4064,4078,4065,4079;      
-    .BaseLevel = 170; // Level base maximo (alterado de 175 para 170)        
-    .JobLevel = 60; // level job maximo        
-    .@size = getarraysize( .JobListM );        
-    for( .@i = 0; .@i < .@size; .@i++ ){        
-         .MenuM$ = .MenuM$ + jobname( .JobListM[.@i] )+":";        
-        .MenuF$ = .MenuF$ + jobname( .JobListF[.@i] )+":";        
-	}      
-	// Adiciona waiting room      
-    
-	initnpctimer;    
-	end;    
-OnTimer1000:    
-	showscript "Mestra de Classe ROS!!";    
-	setnpctimer 0;    
-	end;          
+	callsub GiveCardTokens;
+	end;
+
+// Funcao Platinum Skills embutida
+GetPlatinumSkills:
+	skill "NV_FIRSTAID",1,SKILL_PERM;
+	switch (BaseClass) {
+		case Job_Novice:
+			if (Class != Job_Super_Novice)
+				skill "NV_TRICKDEAD",1,SKILL_PERM;
+			break;
+		case Job_Swordman:
+			skill "SM_MOVINGRECOVERY",1,SKILL_PERM;
+			skill "SM_FATALBLOW",1,SKILL_PERM;
+			skill "SM_AUTOBERSERK",1,SKILL_PERM;
+			break;
+		case Job_Mage:
+			skill "MG_ENERGYCOAT",1,SKILL_PERM;
+			break;
+		case Job_Archer:
+			skill "AC_MAKINGARROW",1,SKILL_PERM;
+			skill "AC_CHARGEARROW",1,SKILL_PERM;
+			break;
+		case Job_Acolyte:
+			skill "AL_HOLYLIGHT",1,SKILL_PERM;
+			break;
+		case Job_Merchant:
+			skill "MC_CARTREVOLUTION",1,SKILL_PERM;
+			skill "MC_CHANGECART",1,SKILL_PERM;
+			skill "MC_LOUD",1,SKILL_PERM;
+			if(PACKETVER >= 20150826)
+				skill "MC_CARTDECORATE",1,SKILL_PERM;
+			break;
+		case Job_Thief:
+			skill "TF_SPRINKLESAND",1,SKILL_PERM;
+			skill "TF_BACKSLIDING",1,SKILL_PERM;
+			skill "TF_PICKSTONE",1,SKILL_PERM;
+			skill "TF_THROWSTONE",1,SKILL_PERM;
+			break;
+		default:
+			break;
+	}
+	switch (BaseJob) {
+		case Job_Knight:
+			skill "KN_CHARGEATK",1,SKILL_PERM;
+			break;
+		case Job_Priest:
+			skill "PR_REDEMPTIO",1,SKILL_PERM;
+			break;
+		case Job_Wizard:
+			skill "WZ_SIGHTBLASTER",1,SKILL_PERM;
+			break;
+		case Job_Blacksmith:
+			skill "BS_UNFAIRLYTRICK",1,SKILL_PERM;
+			skill "BS_GREED",1,SKILL_PERM;
+			break;
+		case Job_Hunter:
+			skill "HT_PHANTASMIC",1,SKILL_PERM;
+			break;
+		case Job_Assassin:
+			skill "AS_SONICACCEL",1,SKILL_PERM;
+			skill "AS_VENOMKNIFE",1,SKILL_PERM;
+			break;
+		case Job_Crusader:
+			skill "CR_SHRINK",1,SKILL_PERM;
+			break;
+		case Job_Monk:
+			skill "MO_KITRANSLATION",1,SKILL_PERM;
+			skill "MO_BALKYOUNG",1,SKILL_PERM;
+			break;
+		case Job_Sage:
+			skill "SA_CREATECON",1,SKILL_PERM;
+			skill "SA_ELEMENTWATER",1,SKILL_PERM;
+			skill "SA_ELEMENTGROUND",1,SKILL_PERM;
+			skill "SA_ELEMENTFIRE",1,SKILL_PERM;
+			skill "SA_ELEMENTWIND",1,SKILL_PERM;
+			break;
+		case Job_Rogue:
+			skill "RG_CLOSECONFINE",1,SKILL_PERM;
+			break;
+		case Job_Alchemist:
+			skill "AM_BIOETHICS",1,SKILL_PERM;
+			break;
+		case Job_Bard:
+			skill "BA_PANGVOICE",1,SKILL_PERM;
+			break;
+		case Job_Dancer:
+			skill "DC_WINKCHARM",1,SKILL_PERM;
+			break;
+		default:
+			break;
+	}
+	return;
+
+GiveCardTokens:
+	.@tokens = callsub(GetInitialCardTokens);
+	if (.@tokens <= 0)
+		return;
+
+	.@current = countitem(1000196);
+	if (.@current > 0)
+		delitem 1000196,.@current;
+
+	if (!checkweight(1000196,.@tokens)) {
+		message strcharinfo(0),"Libere peso no inventario para receber seus tokens de cartas.";
+		return;
+	}
+
+	getitembound 1000196,.@tokens,BOUND_ACCOUNT;
+	set #ROS2026_CARDTOKEN_CLASS, Class;
+	set #ROS2026_CARDTOKEN_START, .@tokens;
+	message strcharinfo(0),"Voce recebeu "+.@tokens+" tokens de cartas da sua classe.";
+	return;
+
+GetInitialCardTokens:
+	switch (Class) {
+		case 4072: return 20;
+		case 4065: return 15;
+		case 4073: return 10;
+		case 4060: return 15;
+		case 4062: return 15;
+		case 4076: return 15;
+		case 4063: return 15;
+		case 4077: return 10;
+		case 4064: return 20;
+		case 4078: return 20;
+		case 4061: return 10;
+		case 4074: return 10;
+		default: return 0;
+	}
+
+OnInit:
+	// IDs na mesma ordem (classe 3)
+	setarray .JobListM[0],4060,4073,4061,4074,4062,4075,4063,4077,4064,4078,4065,4079;
+	setarray .JobListF[0],4060,4073,4061,4074,4062,4076,4063,4077,4064,4078,4065,4079;
+	// Nomes PT-BR (wiki classe 3); texto ASCII para evitar '?' no cliente
+	setarray .NameM$[0],"Cavaleiros Runicos","Guardioes Reais","Arcanos","Feiticeiros","Sentinelas","Trovadores","Arcebispos","Shuras","Mecanicos","Bioquimicos","Sicarios","Renegados";
+	setarray .NameF$[0],"Cavaleiros Runicos","Guardioes Reais","Arcanos","Feiticeiros","Sentinelas","Musas","Arcebispos","Shuras","Mecanicos","Bioquimicos","Sicarios","Renegados";
+	.BaseLevel = 170;
+	.JobLevel = 60;
+	.@size = getarraysize( .JobListM );
+	for( .@i = 0; .@i < .@size; .@i++ ){
+		.MenuM$ = .MenuM$ + .NameM$[.@i] + ":";
+		.MenuF$ = .MenuF$ + .NameF$[.@i] + ":";
+	}
+
+	initnpctimer;
+	end;
+OnTimer1000:
+	showscript "Mestra de Classe ROS!!";
+	setnpctimer 0;
+	end;
 }

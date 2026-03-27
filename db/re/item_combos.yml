@@ -19140,7 +19140,8 @@ Body:
           - Steel_Chonchon_Card    # 4042
     Script: |
       bonus2 bResEff,Eff_Freeze,10000;
-      bonus5 bAutoSpellWhenHit,"NPC_WIDEFREEZE",2,10,BF_WEAPON|BF_MAGIC,0;
+      bonus5 bAutoSpellWhenHit,"NPC_WIDEFREEZE",2,10,BF_WEAPON,0;
+      bonus5 bAutoSpellWhenHit,"NPC_WIDEFREEZE",2,10,BF_MAGIC,0;
   - Combos:
       - Combo:
           - Old_Pink_Poo_Hat    # 18959
@@ -45179,7 +45180,8 @@ Body:
           - Old_Pink_Poo_Hat_ROC    # 400412
     Script: |
       bonus2 bResEff,Eff_Freeze,10000;
-      bonus5 bAutoSpellWhenHit,"NPC_WIDEFREEZE",2,10,BF_WEAPON|BF_MAGIC,0;
+      bonus5 bAutoSpellWhenHit,"NPC_WIDEFREEZE",2,10,BF_WEAPON,0;
+      bonus5 bAutoSpellWhenHit,"NPC_WIDEFREEZE",2,10,BF_MAGIC,0;
   - Combos:
       - Combo:
           - Sandals_    # 2402
@@ -45187,8 +45189,8 @@ Body:
           - Old_Pink_Poo_Hat_ROC    # 400412
     Script: |
       .@r = getequiprefinerycnt(EQI_SHOES);
-      bonus bMaxHPrate,4+.@r;
-      bonus bMaxSPrate,4+.@r;
+      bonus bMaxHPrate,4+(2*.@r);
+      bonus bMaxSPrate,4+(2*.@r);
   - Combos:
       - Combo:
           - Kafra_Employee_Band_ROC    # 400413

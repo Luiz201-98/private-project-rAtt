@@ -5247,8 +5247,8 @@ Body:
         Requires:
           - Name: SC_BODYPAINT
             Level: 1
-      # - Name: SC_GROOMY
-        # MaxLevel: 3
+      - Name: SC_GROOMY
+        MaxLevel: 3
         Requires:
           - Name: SC_BODYPAINT
             Level: 1
@@ -5262,8 +5262,8 @@ Body:
         Requires:
           - Name: SC_ENERVATION
             Level: 1
-          # - Name: SC_GROOMY
-            # Level: 1
+          - Name: SC_GROOMY
+            Level: 1
           - Name: SC_IGNORANCE
             Level: 1
       - Name: SC_UNLUCKY
@@ -5278,8 +5278,8 @@ Body:
         Requires:
           - Name: SC_ENERVATION
             Level: 1
-          # - Name: SC_GROOMY
-            # Level: 1
+          - Name: SC_GROOMY
+            Level: 1
           - Name: SC_IGNORANCE
             Level: 1
       - Name: SC_STRIPACCESSARY
@@ -5287,21 +5287,21 @@ Body:
         Requires:
           - Name: RG_STRIPWEAPON
             Level: 1
-      # - Name: SC_MANHOLE
-        # MaxLevel: 3
+      - Name: SC_MANHOLE
+        MaxLevel: 3
         Requires:
           - Name: RG_FLAGGRAFFITI
             Level: 1
       - Name: SC_DIMENSIONDOOR
         MaxLevel: 3
-        # Requires:
-          # - Name: SC_MANHOLE
-            # Level: 1
+        Requires:
+          - Name: SC_MANHOLE
+            Level: 1
       - Name: SC_CHAOSPANIC
         MaxLevel: 3
-        # Requires:
-          # - Name: SC_MANHOLE
-            # Level: 1
+        Requires:
+          - Name: SC_MANHOLE
+            Level: 1
       - Name: SC_MAELSTROM
         MaxLevel: 3
         Requires:
